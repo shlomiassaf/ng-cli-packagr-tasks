@@ -18,7 +18,7 @@ yarn add ng-cli-packagr-tasks -D
 
 ## Configuration
 
-Here is a simple CLU configuration for a library (`angular.json`):
+Here is a simple CLI configuration for a library (`angular.json`):
 
 ```json
 "architect": {
@@ -95,6 +95,8 @@ export interface NgPackagerTransformerHooks {
 }
 ```
 
+> The order which the tasks run reflect in the order of the properties above.
+
 For example, `compileNgc` will compile the library (TS -> JS, twice in 2 formats).
 
 > `ng-packager` has more tasks, running before `analyseSources` but they do not provide any value for customization.
@@ -136,10 +138,17 @@ export type EntryPointHookHandler = (currentEntryPoint: EntryPointNode, graph: B
 
 ## Examples
 
-The `EntryPointNode` object contains a lot of things. File path locations (sources, destinations), cached files, cache TS compiler programs and more...
+Before we dive into examples, it's important that we understand what information is available to us, provided by `ng-packagr`.
+
+Most of it is stored in `EntryPointNode`. The `EntryPointNode` object contains a lot of things. File path locations (sources, destinations), cached files, cache TS compiler programs and more...
+
+If we want to copy or move files, delete, build something etc, we need to know where the resources are located...
+
+There isn't much documentation, but [it is typed which should be enough](https://github.com/ng-packagr/ng-packagr/blob/master/src/lib/ng-v5/nodes.ts).
 
 TODO:
 
+- Example on information in `EntryPointNode` (destination, metadata etc...)
 - Example for copy files
 - Example for API documentation generator
 - Example for filtering secondary entry points based on affected status
