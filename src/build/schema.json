@@ -1,0 +1,32 @@
+{
+  "title": "ng-packagr Target",
+  "description": "ng-packagr target options for Build Architect.",
+  "type": "object",
+  "properties": {
+    "project": {
+      "type": "string",
+      "description": "The file path of the package.json for distribution via npm."
+    },
+    "tsConfig": {
+      "type": "string",
+      "description": "The file path of the TypeScript configuration file."
+    },
+    "watch": {
+      "type": "boolean",
+      "description": "Run build when files change.",
+      "default": false
+    },
+    "transformConfig": {
+      "type": "string",
+      "description": "A path to a module exporting the transform configuration. The module must implement 'NgPackagerTransformerHooksModule'. If the module is a TS file and there isn't any handler for the .ts extension, will try to require ts-node/register"
+    },
+    "transformTsConfig": {
+      "type": "string",
+      "description": "Valid when the module in 'transformConfig' is a TS module. The full path for the TypeScript configuration file , relative to the current workspace, used to load the module in transformConfig."
+    },
+  },
+  "additionalProperties": false,
+  "required": [
+    "project"
+  ]
+}
