@@ -162,6 +162,7 @@ There isn't much documentation, but [it is typed which should be enough](https:/
 - [Filtering build of packages](/examples/filter-packages.ts)
 - [Copy file to built packages](/examples/copy-files.ts)
 - [API Metadata generator](/examples/api-generator.ts)
+- [API Metadata generator](/examples/update-tsconfig-for-secondary-entry-points.ts)
 
 TODO:
 
