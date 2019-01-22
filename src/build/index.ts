@@ -36,7 +36,7 @@ export class NgPackagrBuilder extends _NgPackagrBuilder {
     return from(this.getTransformerHooks(this.options.transformConfig))
       .pipe(
         tap( transformerHooks => {
-          const providers = createHookProviders(transformerHooks);
+          const providers = createHookProviders(transformerHooks, this.options.transformData);
           ngPackagr.NgPackagr.prototype.build = function (this: ngPackagr.NgPackagr) {
             this.withProviders(providers);
             return build.call(this);

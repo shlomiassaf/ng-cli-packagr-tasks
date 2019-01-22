@@ -1,25 +1,49 @@
+import { ParsedConfiguration } from '@angular/compiler-cli';
 import { BuildGraph } from 'ng-packagr/lib/brocc/build-graph';
 import { EntryPointNode } from 'ng-packagr/lib/ng-v5/nodes';
 import { logging } from '@angular-devkit/core';
 
 /**
- * A hook handler that runs at the initialization phase, when all entry points are discovered and all initial values are loaded.
+ * A context for hooks running at the initialization phase, when all entry points are discovered and all initial values are loaded.
  */
-export type HookHandler = (graph: BuildGraph) => BuildGraph | undefined | Promise<BuildGraph | undefined>;
-/**
- * A hook handler that runs at the processing phase, where each entry point is being processed in a sequence, one after the other.
- * The entry point currently processed is passed in the first parameter.
- */
-export type EntryPointHookHandler = (currentEntryPoint: EntryPointNode, graph: BuildGraph) => BuildGraph | undefined | Promise<BuildGraph | undefined>;
+export interface TaskContext<T = any[], TDate = any> {
+  /**
+   * An arbitrary object passed from the CLI configuration in `angular.json`
+   */
+  transformData?: TDate;
 
-export interface TransformerHook<T = EntryPointHookHandler> {
-  before?: T;
-  replace?: T;
-  after?: T;
+  /**
+   * A tuple with injected objects passed to the factory of the transformer.
+   */
+  factoryInjections: T;
+
+  /**
+   * The main build graph
+   */
+  graph: BuildGraph;
+}
+
+/**
+ * A context for hook handlers running at the processing phase, where each entry point is being processed in a sequence, one after the other.
+ */
+export interface EntryPointTaskContext<T = any[], TDate = any> extends TaskContext<T> {
+  /**
+   * The current entry point processed.
+   */
+  epNode: EntryPointNode;
+}
+
+export type HookHandler<T> = (taskContext: T) => (BuildGraph | void | Promise<BuildGraph> | Promise<void>);
+
+export interface TransformerHook<T = EntryPointTaskContext> {
+  before?: HookHandler<T>;
+  replace?: HookHandler<T>;
+  after?: HookHandler<T>;
 }
 
 export interface NgPackagerTransformerHooks {
-  analyseSources?: TransformerHook<HookHandler>;
+  initTsConfig?: TransformerHook<TaskContext<[ParsedConfiguration]>>;
+  analyseSources?: TransformerHook<TaskContext>;
   entryPoint?: TransformerHook;
   compileNgc?: TransformerHook;
   writeBundles?: TransformerHook;
@@ -50,6 +74,12 @@ declare module '@angular-devkit/build-ng-packagr/src/build/index.d' {
      * Note that this module is executed in `node` runtime, if it's a TS module make sure the ts compiler configuration is appropriate.
      */
     transformConfig?: string;
+
+    /**
+     * An arbitrary object with data passed for transformers.
+     * Use this to passed configuration to transformers, for example a copy file instruction.
+     */
+    transformData?: any;    
     /**
      * Valid when the module in 'transformConfig' is a TS module. The full path for the TypeScript configuration file , relative to the current workspace, used to load the module in transformConfig.
      */

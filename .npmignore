@@ -1,4 +1,5 @@
 tsconfig.json
+examples
 src/**/*.ts
 .vscode
 node_modules

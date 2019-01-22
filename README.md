@@ -87,7 +87,8 @@ Regardless of how you choose to export the instructions (function or object), th
 
 ```ts
 export interface NgPackagerTransformerHooks {
-  analyseSources?: TransformerHook<HookHandler>;
+  initTsConfig?: TransformerHook<TaskContext<[ParsedConfiguration]>>;
+  analyseSources?: TransformerHook<TaskContext>;
   entryPoint?: TransformerHook;
   compileNgc?: TransformerHook;
   writeBundles?: TransformerHook;
@@ -106,10 +107,10 @@ For example, `compileNgc` will compile the library (TS -> JS, twice in 2 formats
 For each hook there are 3 phases which you can register (all optional): **before**, **replace** and **after**
 
 ```ts
-export interface TransformerHook<EntryPointHookHandler | HookHandler> {
-  before?: T;
-  replace?: T;
-  after?: T;
+export interface TransformerHook<T> {
+  before?: HookHandler<T>;
+  replace?: HookHandler<T>;
+  after?: HookHandler<T>;
 }
 ```
 
@@ -120,21 +121,33 @@ If you set a hook handler in **replace** the original task from `ng-packagr` **W
 
 > Do not set a handler in **replace** unless you really know what you are doing!
 
-We can see that there are 2 types of handlers (T):
+Each `HookHandler` is a function that handles handles that hook:
+
+```ts
+export type HookHandler<T> = (taskContext: T) => BuildGraph | undefined | Promise<BuildGraph | undefined>;
+```
+
+The hook is invoked with a `taskContext` parameter.
+We can see from the generic (T) that there is more then one types of handler, there are 2:
 
 ```ts
 /**
- * A hook handler that runs at the initialization phase, when all entry points are discovered and all initial values are loaded.
+ * A context for hooks running at the initialization phase, when all entry points are discovered and all initial values are loaded.
  */
-export type HookHandler = (graph: BuildGraph) => BuildGraph | undefined | Promise<BuildGraph | undefined>;
+export interface TaskContext<T = any[]> {
+  factoryInjections: T;
+  graph: BuildGraph;
+}
+
 /**
- * A hook handler that runs at the processing phase, where each entry point is being processed in a sequence, one after the other.
- * The entry point currently processed is passed in the first parameter.
+ * A context for hook handlers running at the processing phase, where each entry point is being processed in a sequence, one after the other.
  */
-export type EntryPointHookHandler = (currentEntryPoint: EntryPointNode, graph: BuildGraph) => BuildGraph | undefined | Promise<BuildGraph | undefined>;
+export interface EntryPointTaskContext<T = any[]> extends TaskContext<T> {
+  epNode: EntryPointNode;
+}
 ```
 
-`HookHandler` comes first, before each entity is processed. `analyseSources` is the only hook in this category.
+> `EntryPointTaskContext` handlers are called multiple times, once for every package (primary and secondary). `TaskContext` is called once before starting to process packages
 
 ## Examples
 
@@ -146,11 +159,10 @@ If we want to copy or move files, delete, build something etc, we need to know w
 
 There isn't much documentation, but [it is typed which should be enough](https://github.com/ng-packagr/ng-packagr/blob/master/src/lib/ng-v5/nodes.ts).
 
+- [Filtering build of packages](/examples/filter-packages.ts)
+- [Copy file to built packages](/examples/copy-files.ts)
+- [API Metadata generator](/examples/api-generator.ts)
+
 TODO:
-
 - Example on information in `EntryPointNode` (destination, metadata etc...)
-- Example for copy files
-- Example for API documentation generator
-- Example for filtering secondary entry points based on affected status
 - Example for theme builder (e.g. scss)
-
