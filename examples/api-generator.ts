@@ -30,6 +30,8 @@ module.exports = function(ctx: NgPackagerTransformerHooksContext) {
       },
     };
   
+    // We use the logger in the context (architect logger) and wrap it with 
+    // a interface that `api-extractor` can use...
     const logger = {
       logVerbose(message: string): void { ctx.logger.debug(message); },
       logInfo(message: string): void { ctx.logger.info(message); },
