@@ -37,6 +37,7 @@ async function bumpTask(context: EntryPointTaskContext) {
   const { entryPoint } = context.epNode.data;
 
   const ver = semver.parse(entryPoint.packageJson.version);
+  const oldVersion = ver.version;
   const newVersion = semver.inc(ver, bump);
   entryPoint.packageJson.version = newVersion;
 
@@ -56,7 +57,7 @@ async function bumpTask(context: EntryPointTaskContext) {
     )
     .toPromise();
 
-  log.msg(`Version bumped from ${ver.version} to ${newVersion} (${bump})`);
+  log.msg(`Version bumped from ${oldVersion} to ${newVersion} (${bump})`);
 }
 
 export const bump: TypedTask = {
