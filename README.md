@@ -188,6 +188,8 @@ Typed tasks are more strict and organized, they usually require input and they a
 
 The library comes with several built in tasks (typed tasks).
 
+You can review [the source code](/src/tasks) for some of the built-in typed tasks and build your own.
+
 ## Examples
 
 Before we dive into examples, it's important that we understand what information is available to us, provided by `ng-packagr`.
