@@ -43,3 +43,16 @@ tell the task when to run and when not to run (no cli argument).
 
 The configuration file (`copy-files-and-bump.ts`) is very simple, it just registers the tasks in the proper hook and phase.
 In out case, in the `writePackage` hook at the `before` phase.
+
+Finally, to run with bump:
+
+```bash
+ng build my-cli-project --prod --tasksArgs="bump=major"
+```
+
+You can replace `major` with any release type available in the `semver` 2 spec:
+
+```ts
+type ReleaseType = "major" | "premajor" | "minor" | "preminor" | "patch" | "prepatch" | "prerelease";
+
+```
