@@ -1,6 +1,6 @@
 import * as FS from 'fs';
 import { Observable, from } from 'rxjs';
-import { switchMap, tap } from 'rxjs/operators';
+import { switchMap, map, tap } from 'rxjs/operators';
 
 import { BuildEvent, BuilderConfiguration } from '@angular-devkit/architect';
 import * as devKitCore from '@angular-devkit/core';
@@ -9,8 +9,14 @@ import * as ngPackagr from 'ng-packagr';
 
 // TODO: Remove when issue is fixed.
 import './workaround-issue-1189';
-import { NgPackagerTransformerHooks, NgPackagerTransformerHooksModule } from './hooks';
+import {
+  NormalizedNgPackagerHooks,
+  NgPackagerHooksModule,
+  NgPackagrBuilderOptionsWithTasks,
+  NgPackagerHooksContext
+} from './hooks';
 import { createHookProviders } from './create-hook-provider';
+import { validateTypedTasks, normalizeHooks } from './utils';
 
 export * from './hooks';
 
@@ -29,14 +35,25 @@ const DEFAULT_TSCONFIG_OPTIONS = {
 export class NgPackagrBuilder extends _NgPackagrBuilder {
   private options: NgPackagrBuilderOptions;
 
-  run(builderConfig: BuilderConfiguration<NgPackagrBuilderOptions>): Observable<BuildEvent> {
+  run(builderConfig: BuilderConfiguration<NgPackagrBuilderOptionsWithTasks>): Observable<BuildEvent> {
+    const builderContext = this.context;
     this.options = builderConfig.options;
+    const root = this.context.workspace.root;
+    const { tasks } = this.options;
     const { build, watch } = ngPackagr.NgPackagr.prototype;
 
-    return from(this.getTransformerHooks(this.options.transformConfig))
+    const globalTasksContext = {
+      logger: this.context.logger,
+      root,
+      builderContext,
+      builderConfig
+    };
+
+    return from(this.getTransformerHooks(tasks.config, globalTasksContext))
       .pipe(
-        tap( transformerHooks => {
-          const providers = createHookProviders(transformerHooks, this.options.transformData);
+        switchMap( transformerHooks => validateTypedTasks(transformerHooks, this.context, tasks) ),
+        tap( transformerHooks => {        
+          const providers = createHookProviders(transformerHooks, globalTasksContext);
           ngPackagr.NgPackagr.prototype.build = function (this: ngPackagr.NgPackagr) {
             this.withProviders(providers);
             return build.call(this);
@@ -54,30 +71,27 @@ export class NgPackagrBuilder extends _NgPackagrBuilder {
       );
   }
 
-  private getTransformerHooks(transformerPath: string): Promise<NgPackagerTransformerHooks> {
+  private getTransformerHooks(transformerPath: string, globalTasksContext: NgPackagerHooksContext): Promise<NormalizedNgPackagerHooks> {
+    const { tasks } = this.options;
     const root = this.context.workspace.root;
     const tPath = devKitCore.resolve(root, devKitCore.normalize(transformerPath));
     if (FS.existsSync(tPath)) {
       if (/\.ts$/.test(tPath) && !require.extensions['.ts']) {
         const tsNodeOptions = {} as any;
-        if (this.options.transformTsConfig) {
-          tsNodeOptions.project = this.options.transformTsConfig;
+        if (tasks.tsConfig) {
+          tsNodeOptions.project = tasks.tsConfig;
         } else {
           tsNodeOptions.compilerOptions = DEFAULT_TSCONFIG_OPTIONS;
         }
         require('ts-node').register(tsNodeOptions);
       }
-      const transformHooks: NgPackagerTransformerHooksModule = require(tPath);
+      const transformHooksModule: NgPackagerHooksModule = require(tPath);
 
-      if (typeof transformHooks === 'function') {
-        const ctx = {
-          logger: this.context.logger,
-          root,
-        }
-        return Promise.resolve(transformHooks(ctx));
-      } else {
-        return Promise.resolve(transformHooks);
-      }
+      const transformHooks = typeof transformHooksModule === 'function'
+        ? transformHooksModule(globalTasksContext)
+        : transformHooksModule
+      ;
+      return Promise.resolve(transformHooks).then(normalizeHooks);
     };
     return Promise.resolve({});
   }

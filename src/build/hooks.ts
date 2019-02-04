@@ -1,16 +1,14 @@
 import { ParsedConfiguration } from '@angular/compiler-cli';
+import { logging } from '@angular-devkit/core';
+import { BuilderConfiguration, BuilderContext } from '@angular-devkit/architect';
+import { NgPackagrBuilderOptions } from '@angular-devkit/build-ng-packagr';
 import { BuildGraph } from 'ng-packagr/lib/brocc/build-graph';
 import { EntryPointNode } from 'ng-packagr/lib/ng-v5/nodes';
-import { logging } from '@angular-devkit/core';
 
 /**
  * A context for hooks running at the initialization phase, when all entry points are discovered and all initial values are loaded.
  */
-export interface TaskContext<T = any[], TDate = any> {
-  /**
-   * An arbitrary object passed from the CLI configuration in `angular.json`
-   */
-  transformData?: TDate;
+export interface TaskContext<T = any[], TData extends NgPackagrBuilderTaskSchema = NgPackagrBuilderTaskSchema> {
 
   /**
    * A tuple with injected objects passed to the factory of the transformer.
@@ -21,12 +19,16 @@ export interface TaskContext<T = any[], TDate = any> {
    * The main build graph
    */
   graph: BuildGraph;
+
+  context<Z extends NgPackagrBuilderTaskSchema = TData>(): NgPackagerHooksContext<Z>;
+
+  taskArgs(key: string): string | undefined;
 }
 
 /**
  * A context for hook handlers running at the processing phase, where each entry point is being processed in a sequence, one after the other.
  */
-export interface EntryPointTaskContext<T = any[], TDate = any> extends TaskContext<T> {
+export interface EntryPointTaskContext<T = any[], TData extends NgPackagrBuilderTaskSchema = NgPackagrBuilderTaskSchema> extends TaskContext<T, TData> {
   /**
    * The current entry point processed.
    */
@@ -35,33 +37,44 @@ export interface EntryPointTaskContext<T = any[], TDate = any> extends TaskConte
 
 export type HookHandler<T> = (taskContext: T) => (BuildGraph | void | Promise<BuildGraph> | Promise<void>);
 
-export interface TransformerHook<T = EntryPointTaskContext> {
-  before?: HookHandler<T>;
-  replace?: HookHandler<T>;
-  after?: HookHandler<T>;
+export interface TypedTask<T = EntryPointTaskContext> {
+  schema: string;
+  selector: string;
+  handler: HookHandler<T>;
 }
 
-export interface NgPackagerTransformerHooks {
-  initTsConfig?: TransformerHook<TaskContext<[ParsedConfiguration]>>;
-  analyseSources?: TransformerHook<TaskContext>;
-  entryPoint?: TransformerHook;
-  compileNgc?: TransformerHook;
-  writeBundles?: TransformerHook;
-  writePackage?: TransformerHook;
+export type TaskOrTasksLike<T> = TypedTask<T> | HookHandler<T> | Array<TypedTask<T> | HookHandler<T>>;
+
+export interface TaskPhases<T = EntryPointTaskContext> {
+  before?: TaskOrTasksLike<T>;
+  replace?: TaskOrTasksLike<T>;
+  after?: TaskOrTasksLike<T>;
 }
 
-export interface NgPackagerTransformerHooksContext {
+export interface NgPackagerHooks {
+  initTsConfig?: TaskPhases<TaskContext<[ParsedConfiguration]>>;
+  analyseSources?: TaskPhases<TaskContext>;
+  entryPoint?: TaskPhases;
+  compileNgc?: TaskPhases;
+  writeBundles?: TaskPhases;
+  writePackage?: TaskPhases;
+}
+
+export interface NgPackagerHooksContext<T extends NgPackagrBuilderTaskSchema = NgPackagrBuilderTaskSchema> {
   logger: logging.Logger,
   root: string;
+  builderContext: BuilderContext;
+  builderConfig: BuilderConfiguration<NgPackagrBuilderOptionsWithTasks<T>>;
 }
 
-export type NgPackagerTransformerHooksModule
-  = NgPackagerTransformerHooks
-  | ((ctx: NgPackagerTransformerHooksContext) => NgPackagerTransformerHooks | Promise<NgPackagerTransformerHooks>);
+export type NgPackagerHooksModule<T extends NgPackagrBuilderTaskSchema = NgPackagrBuilderTaskSchema>
+  = NgPackagerHooks
+  | ((ctx: NgPackagerHooksContext<T>) => NgPackagerHooks | Promise<NgPackagerHooks>);
 
-declare module '@angular-devkit/build-ng-packagr/src/build/index.d' {
-  interface NgPackagrBuilderOptions {
-    /**
+export interface NgPackagrBuilderTaskSchema { }
+
+export interface NgPackagrBuilderTaskOptions<T extends NgPackagrBuilderTaskSchema = NgPackagrBuilderTaskSchema> {
+      /**
      * A path to a module exporting the transform configuration.
      *
      * The module must implement `NgPackagerTransformerHooksModule` which means it must export (default) one of:
@@ -73,16 +86,43 @@ declare module '@angular-devkit/build-ng-packagr/src/build/index.d' {
      *
      * Note that this module is executed in `node` runtime, if it's a TS module make sure the ts compiler configuration is appropriate.
      */
-    transformConfig?: string;
+    config?: string;
 
     /**
      * An arbitrary object with data passed for transformers.
      * Use this to passed configuration to transformers, for example a copy file instruction.
      */
-    transformData?: any;    
+    data?: T;    
     /**
      * Valid when the module in 'transformConfig' is a TS module. The full path for the TypeScript configuration file , relative to the current workspace, used to load the module in transformConfig.
      */
-    transformTsConfig?: string;
+    tsConfig?: string;
+}
+
+export type NgPackagrBuilderOptionsWithTasks<T extends NgPackagrBuilderTaskSchema = NgPackagrBuilderTaskSchema>
+  = NgPackagrBuilderOptions & { tasks: NgPackagrBuilderTaskOptions<T> };
+
+declare module '@angular-devkit/build-ng-packagr/src/build/index.d' {
+  interface NgPackagrBuilderOptions {
+    tasks?: NgPackagrBuilderTaskOptions;
+    tasksArgs?: string;
   }
+}
+
+
+/** @internal */
+export interface NormalizedTaskPhases<T = EntryPointTaskContext> {
+  before?: Array<TypedTask<T> | HookHandler<T>>;
+  replace?: Array<TypedTask<T> | HookHandler<T>>;
+  after?: Array<TypedTask<T> | HookHandler<T>>;
+}
+
+/** @internal */
+export interface NormalizedNgPackagerHooks {
+  initTsConfig?: NormalizedTaskPhases<TaskContext<[ParsedConfiguration]>>;
+  analyseSources?: NormalizedTaskPhases<TaskContext>;
+  entryPoint?: NormalizedTaskPhases;
+  compileNgc?: NormalizedTaskPhases;
+  writeBundles?: NormalizedTaskPhases;
+  writePackage?: NormalizedTaskPhases;
 }

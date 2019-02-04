@@ -1,0 +1,19 @@
+{
+  "title": "Webpack browser schema for Build Facade.",
+  "description": "Browser target options",
+  "properties": {
+    "bump": {
+      "type": "string",
+      "description": "What to bump (semver)",
+      "enum": [
+        "major",
+        "premajor",
+        "minor",
+        "preminor",
+        "patch",
+        "prepatch",
+        "prerelease"
+      ]
+    }
+  }
+}

@@ -2,7 +2,6 @@
  * Example: Update tsconfig settings before compilation in secondary entry points.
  */
 
-
 import { NgPackagerTransformerHooks, NgPackagerTransformerHooksContext } from 'ng-cli-packagr-tasks';
 import { isEntryPoint } from 'ng-packagr/lib/ng-v5/nodes';
 

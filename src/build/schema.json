@@ -16,21 +16,31 @@
       "description": "Run build when files change.",
       "default": false
     },
-    "transformConfig": {
-      "type": "string",
-      "description": "A path to a module exporting the transform configuration. The module must implement 'NgPackagerTransformerHooksModule'. If the module is a TS file and there isn't any handler for the .ts extension, will try to require ts-node/register"
-    },
-    "transformData": {
+    "tasks": {
       "type": "object",
-      "description": "An arbitrary object with data passed for transformers.",
-      "additionalProperties": true
+      "properties": {
+        "config": {
+          "type": "string",
+          "description": "A path to a module exporting the transform configuration. The module must implement 'NgPackagerTransformerHooksModule'. If the module is a TS file and there isn't any handler for the .ts extension, will try to require ts-node/register"
+        },
+        "data": {
+          "type": "object",
+          "description": "An arbitrary object with data passed for transformers.",
+          "additionalProperties": true
+        },
+        "tsConfig": {
+          "type": "string",
+          "description": "Valid when the module in 'transformConfig' is a TS module. The full path for the TypeScript configuration file , relative to the current workspace, used to load the module in transformConfig."
+        } 
+      }
     },
-    "transformTsConfig": {
+    "tasksArgs": {
       "type": "string",
-      "description": "Valid when the module in 'transformConfig' is a TS module. The full path for the TypeScript configuration file , relative to the current workspace, used to load the module in transformConfig."
+      "description": "An optional string that you can use to provide command line arguments to tasks. \n\n Use URL query string format.",
+      "default": ""
     }
   },
-  "additionalProperties": false,
+  "additionalProperties": true,
   "required": [
     "project"
   ]

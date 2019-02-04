@@ -1,6 +1,7 @@
 tsconfig.json
 examples
 src/**/*.ts
+publish-copy.js
 .vscode
 node_modules
 yarn.lock
