@@ -74,7 +74,7 @@ export class NgPackagrBuilder extends _NgPackagrBuilder {
   private getTransformerHooks(transformerPath: string, globalTasksContext: NgPackagerHooksContext): Promise<NormalizedNgPackagerHooks> {
     const { tasks } = this.options;
     const root = this.context.workspace.root;
-    const tPath = devKitCore.resolve(root, devKitCore.normalize(transformerPath));
+    const tPath = devKitCore.getSystemPath(devKitCore.resolve(root, devKitCore.normalize(transformerPath)));
     if (FS.existsSync(tPath)) {
       if (/\.ts$/.test(tPath) && !require.extensions['.ts']) {
         const tsNodeOptions = {} as any;
