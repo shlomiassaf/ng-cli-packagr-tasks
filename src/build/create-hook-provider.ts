@@ -11,11 +11,10 @@ import {
   TaskContext,
   EntryPointTaskContext,
   NormalizedNgPackagerHooks,
-  TypedTask,
   NgPackagerHooksContext,
   NgPackagrBuilderTaskSchema
 } from './hooks';
-import { getHandler, TRANSFORM_PROVIDER_MAP } from './utils';
+import { TRANSFORM_PROVIDER_MAP } from './utils';
 
 const HOOK_HANDLERS: Array<keyof NormalizedNgPackagerHooks> = ['initTsConfig', 'analyseSources'];
 
@@ -66,8 +65,8 @@ export function createHookProviders(hooksConfig: NormalizedNgPackagerHooks,
 }
 
 export function createHookProvider<T extends keyof NormalizedNgPackagerHooks>(sourceHookName: T,
-                                                                                         hookConfig: NormalizedNgPackagerHooks[T],
-                                                                                         globalTasksContext: NgPackagerHooksContext): TransformProvider {
+                                                                              hookConfig: NormalizedNgPackagerHooks[T],
+                                                                              globalTasksContext: NgPackagerHooksContext): TransformProvider {
   const originalProvider = TRANSFORM_PROVIDER_MAP[sourceHookName];
 
   if (!originalProvider) {
@@ -101,10 +100,9 @@ export function createHookProvider<T extends keyof NormalizedNgPackagerHooks>(so
   return clonedProvider;
 }
 
-function createHookTransform(tasksLike: Array<TypedTask<any> | HookHandler<any>>,
+function createHookTransform(tasksLike: Array<HookHandler<any>>,
                              taskContextFactory: (g: BuildGraph) => TaskContext): Transform[] {
-  return tasksLike.map( task => {
-    const handler = getHandler(task);
+  return tasksLike.map( handler => {
     return transformFromPromise( async graph => {
       return Promise.resolve<BuildGraph | void>(handler(taskContextFactory(graph))).then( g => g || graph );
     });

@@ -10,15 +10,18 @@ import * as ngPackagr from 'ng-packagr';
 // TODO: Remove when issue is fixed.
 import './workaround-issue-1189';
 import {
-  NormalizedNgPackagerHooks,
   NgPackagerHooksModule,
   NgPackagrBuilderOptionsWithTasks,
   NgPackagerHooksContext
 } from './hooks';
 import { createHookProviders } from './create-hook-provider';
-import { validateTypedTasks, normalizeHooks } from './utils';
+import { validateTypedTasks } from './utils';
+import { HookRegistry } from './hook-registry';
 
 export * from './hooks';
+export * from './hook-registry';
+export { Job, JobMetadata, Type } from './job';
+export { ENTRY_POINT_STORAGE, EntryPointStorage } from './utils';
 
 const DEFAULT_TSCONFIG_OPTIONS = {
   moduleResolution: 'node',
@@ -49,11 +52,11 @@ export class NgPackagrBuilder extends _NgPackagrBuilder {
       builderConfig
     };
 
-    return from(this.getTransformerHooks(tasks.config, globalTasksContext))
+    return from(this.buildRegistry(tasks.config, globalTasksContext))
       .pipe(
-        switchMap( transformerHooks => validateTypedTasks(transformerHooks, this.context, tasks) ),
-        tap( transformerHooks => {        
-          const providers = createHookProviders(transformerHooks, globalTasksContext);
+        switchMap( registry => validateTypedTasks(registry.getJobs(), this.context, tasks).then( () => registry ) ),
+        tap( registry => {        
+          const providers = createHookProviders(registry.getHooks(), globalTasksContext);
           ngPackagr.NgPackagr.prototype.build = function (this: ngPackagr.NgPackagr) {
             this.withProviders(providers);
             return build.call(this);
@@ -71,7 +74,7 @@ export class NgPackagrBuilder extends _NgPackagrBuilder {
       );
   }
 
-  private getTransformerHooks(transformerPath: string, globalTasksContext: NgPackagerHooksContext): Promise<NormalizedNgPackagerHooks> {
+  private async buildRegistry(transformerPath: string, globalTasksContext: NgPackagerHooksContext): Promise<HookRegistry> {
     const { tasks } = this.options;
     const root = this.context.workspace.root;
     const tPath = devKitCore.getSystemPath(devKitCore.resolve(root, devKitCore.normalize(transformerPath)));
@@ -87,13 +90,16 @@ export class NgPackagrBuilder extends _NgPackagrBuilder {
       }
       const transformHooksModule: NgPackagerHooksModule = require(tPath);
 
-      const transformHooks = typeof transformHooksModule === 'function'
-        ? transformHooksModule(globalTasksContext)
-        : transformHooksModule
-      ;
-      return Promise.resolve(transformHooks).then(normalizeHooks);
+      if (typeof transformHooksModule === 'function') {
+        const registry = new HookRegistry();
+        await transformHooksModule(globalTasksContext, registry);
+        return registry;
+      } else {
+        const registry = new HookRegistry(transformHooksModule);
+        return registry;
+      }
     };
-    return Promise.resolve({});
+    return Promise.resolve(new HookRegistry());
   }
 }
 

@@ -10,14 +10,27 @@ Examples:
 
 - Copy files after package build
 - Bump version (semver)
+- Build node libraries instead of angular libraries.
 
-`ng-packagr` works like a classic task manager, running task in a certain order that is required to create an angular package.
-It also provides the logic for all tasks internally, based on the angular package format spec.
+## How it works?
 
-This closed box does its job well, but what if we want additional steps before/after the packaging? What if we want to change the order, behaviour or logic of each
-step within the packagr? How can we filter certain packages from building (secondary), etc...
+For every package, `ng-packagr` will run several tasks through its' pipeline.  
+This library exposes an API to hook into the pipeline, each step in `ng-packagr` has a unique hook in the API.
 
-`ng-packger` supports this through a programmatic API that is not accessible when using it through the `angular-cli`, this is where `ng-cli-packagr-tasks` comes in.
+To alter the behavior each hook is split into 3 **phases** before and/or after each task and even replacing the built-in task completely.
+
+For each hook/phase combination we can register a handler function (or an array of them) that will be called at that specific phase.
+The handler has access to a lot of data including `ng-packagr` API, architect API and more...
+
+There are 6 hooks: initTsConfig, analyseSources, entryPoint, compileNgc, writeBundles, writePackage.  
+Because there are 3 phases for each hook (before, replace, after) there are 18 points of contact.
+
+The handlers are the most basic form of interaction, we can combine several handlers registered at specific points into a **Job**.
+
+A **Job** is just a collection of handlers that together perform an operation, for example creating a node-library instead of angular library.
+Jobs can also accept input (through `angular.json`), which are type safe as we run validation on them.
+
+The library comes with some built-in **jobs** but you can easily create your own.
 
 ## Install
 
@@ -178,17 +191,19 @@ export interface EntryPointTaskContext<T = any[]> extends TaskContext<T> {
 There are 2 types of tasks:
 
 - A simple function (`HookHandler`)
-- A typed task
+- A job
 
 The first is just a function that implements (`HookHandler`), best suited for ad-hoc quick tasks.
 
-Typed tasks are more strict and organized, they usually require input and they also provide a schema to validate against that input. (see copy example below).
+Job are more strict and organized, they usually require input and they also provide a schema to validate against that input. (see copy example below). A job can
+spread over several hooks.
+
 
 > The input for all typed tasks is always through `tasks.data` where each typed task has a "namespace" which is a property on the data object that points to it's own input object.
 
-The library comes with several built in tasks (typed tasks).
+The library comes with several built in jobs.
 
-You can review [the source code](/src/tasks) for some of the built-in typed tasks and build your own.
+You can review [the source code](/src/tasks) for some of the built-in jobs and build your own.
 
 ## Examples
 
@@ -202,6 +217,7 @@ There isn't much documentation, but [it is typed which should be enough](https:/
 
 - [Filtering build of packages (custom task)](/examples/filter-packages)
 - [Copy files and Bump version (built-in tasks)](/examples/copy-files-and-bump)
+- [Node Library (built-in tasks)](/examples/node-library)
 - [API Metadata generator](/examples/api-generator)
 - [Modify TS compilation settings in secondary entry points](/examples/update-tsconfig-for-secondary-entry-points)
 

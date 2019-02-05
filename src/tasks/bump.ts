@@ -4,7 +4,7 @@ import * as semver from 'semver';
 import { normalize, virtualFs, JsonObject, parseJson, JsonParseMode } from '@angular-devkit/core';
 import * as log from 'ng-packagr/lib/util/log';
 
-import { EntryPointTaskContext, TypedTask } from '../build';
+import { EntryPointTaskContext, Job } from '../build';
 
 const VALID_BUMPS: semver.ReleaseType[] = [
   'major',
@@ -60,8 +60,13 @@ async function bumpTask(context: EntryPointTaskContext) {
   log.msg(`Version bumped from ${oldVersion} to ${newVersion} (${bump})`);
 }
 
-export const bump: TypedTask = {
+@Job({
   schema: Path.resolve(__dirname, 'bump.json'),
   selector: 'bump',
-  handler: bumpTask,
-};
+  hooks: {
+    writePackage: {
+      before: bumpTask
+    }
+  }
+})
+export class Bump { }

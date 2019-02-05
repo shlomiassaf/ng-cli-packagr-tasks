@@ -25,7 +25,7 @@ tell the task when to run and when not to run (no cli argument).
       "tasks": {
         "config": "copy-files-and-bump.ts",
         "data": {
-          "copyFiles": {
+          "copyFile": {
             "assets": [
               {
                 "glob": "**/*.txt",

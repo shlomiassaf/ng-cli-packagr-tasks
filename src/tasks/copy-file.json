@@ -2,7 +2,7 @@
   "title": "Webpack browser schema for Build Facade.",
   "description": "Browser target options",
   "properties": {
-    "copyFiles": {
+    "copyFile": {
       "type": "object",
       "properties": {
         "assets": {

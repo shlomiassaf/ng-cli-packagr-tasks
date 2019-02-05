@@ -7,9 +7,9 @@
  * To extract TS type metadata we are using `@microsoft/api-extractor`.
  */
 
-import { NgPackagerTransformerHooks, NgPackagerTransformerHooksContext, EntryPointTaskContext } from 'ng-cli-packagr-tasks';
+import { NgPackagerHooks, NgPackagerHooksContext, EntryPointTaskContext } from 'ng-cli-packagr-tasks';
 
-module.exports = function(ctx: NgPackagerTransformerHooksContext) {
+module.exports = function(ctx: NgPackagerHooksContext) {
   async function writePackageTransformer(taskContext: EntryPointTaskContext) {
     const entryPointNode = taskContext.epNode;
   
@@ -49,7 +49,7 @@ module.exports = function(ctx: NgPackagerTransformerHooksContext) {
 
   // Note that we create a new TS compilation without reusing the previous program.
   // We have access to it (entryPointNode.cache.oldPrograms) but it refers to the source files and not declaration (d.ts) files that the extractor wants....
-  const hooks: NgPackagerTransformerHooks = {
+  const hooks: NgPackagerHooks = {
     writePackage: {
       after: writePackageTransformer
     },

@@ -5,11 +5,11 @@
  */
 
 
-import { NgPackagerTransformerHooks, NgPackagerTransformerHooksContext } from 'ng-cli-packagr-tasks';
+import { NgPackagerHooks, NgPackagerHooksContext } from 'ng-cli-packagr-tasks';
 import { isEntryPoint } from 'ng-packagr/lib/ng-v5/nodes';
 
-module.exports = function(ctx: NgPackagerTransformerHooksContext) {
-  const hooks: NgPackagerTransformerHooks = {
+module.exports = function(ctx: NgPackagerHooksContext) {
+  const hooks: NgPackagerHooks = {
     initTsConfig: {
       before: async taskContext => {
         for (const entry of taskContext.graph.entries()) {

@@ -7,11 +7,11 @@ import { AssetPattern } from '@angular-devkit/build-angular';
 import { normalizeAssetPatterns } from '@angular-devkit/build-angular/src/utils/normalize-asset-patterns';
 import * as log from 'ng-packagr/lib/util/log';
 
-import { EntryPointTaskContext, TypedTask } from '../build';
+import { EntryPointTaskContext, Job } from '../build';
 
 declare module '../build/hooks' {
   interface NgPackagrBuilderTaskSchema {
-    copyFiles: {
+    copyFile: {
       assets: AssetPattern[];
     }
   }
@@ -31,7 +31,7 @@ async function copyFilesTask(context: EntryPointTaskContext) {
   const syncHost = new virtualFs.SyncDelegateHost<FS.Stats>(host);
 
   const assets = normalizeAssetPatterns(
-    builderConfig.options.tasks.data.copyFiles.assets,
+    builderConfig.options.tasks.data.copyFile.assets,
     syncHost,
     root,
     projectRoot,
@@ -101,8 +101,13 @@ function buildCopyPatterns(root: string, assets: ReturnType< typeof normalizeAss
   });
 }
 
-export const copyFiles: TypedTask = {
+@Job({
   schema: Path.resolve(__dirname, 'copy-file.json'),
-  selector: 'copyFiles',
-  handler: copyFilesTask,
-};
+  selector: 'copyFile',
+  hooks: {
+    writePackage: {
+      before: copyFilesTask
+    }
+  }
+})
+export class CopyFile { }

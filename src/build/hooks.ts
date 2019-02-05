@@ -4,6 +4,7 @@ import { BuilderConfiguration, BuilderContext } from '@angular-devkit/architect'
 import { NgPackagrBuilderOptions } from '@angular-devkit/build-ng-packagr';
 import { BuildGraph } from 'ng-packagr/lib/brocc/build-graph';
 import { EntryPointNode } from 'ng-packagr/lib/ng-v5/nodes';
+import { HookRegistry } from './hook-registry';
 
 /**
  * A context for hooks running at the initialization phase, when all entry points are discovered and all initial values are loaded.
@@ -37,13 +38,7 @@ export interface EntryPointTaskContext<T = any[], TData extends NgPackagrBuilder
 
 export type HookHandler<T> = (taskContext: T) => (BuildGraph | void | Promise<BuildGraph> | Promise<void>);
 
-export interface TypedTask<T = EntryPointTaskContext> {
-  schema: string;
-  selector: string;
-  handler: HookHandler<T>;
-}
-
-export type TaskOrTasksLike<T> = TypedTask<T> | HookHandler<T> | Array<TypedTask<T> | HookHandler<T>>;
+export type TaskOrTasksLike<T> = HookHandler<T> | Array<HookHandler<T>>;
 
 export interface TaskPhases<T = EntryPointTaskContext> {
   before?: TaskOrTasksLike<T>;
@@ -69,7 +64,7 @@ export interface NgPackagerHooksContext<T extends NgPackagrBuilderTaskSchema = N
 
 export type NgPackagerHooksModule<T extends NgPackagrBuilderTaskSchema = NgPackagrBuilderTaskSchema>
   = NgPackagerHooks
-  | ((ctx: NgPackagerHooksContext<T>) => NgPackagerHooks | Promise<NgPackagerHooks>);
+  | ((ctx: NgPackagerHooksContext<T>, registry: HookRegistry) => void | Promise<void>);
 
 export interface NgPackagrBuilderTaskSchema { }
 
@@ -109,12 +104,11 @@ declare module '@angular-devkit/build-ng-packagr/src/build/index.d' {
   }
 }
 
-
 /** @internal */
 export interface NormalizedTaskPhases<T = EntryPointTaskContext> {
-  before?: Array<TypedTask<T> | HookHandler<T>>;
-  replace?: Array<TypedTask<T> | HookHandler<T>>;
-  after?: Array<TypedTask<T> | HookHandler<T>>;
+  before?: Array<HookHandler<T>>;
+  replace?: Array<HookHandler<T>>;
+  after?: Array<HookHandler<T>>;
 }
 
 /** @internal */
