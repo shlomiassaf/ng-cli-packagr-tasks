@@ -98,13 +98,12 @@ tasks. We will cover this shortly, for now let's focus on the configuration modu
 The configuration module is a simple JS (or TS) file that exports (default) the transformation instructions, there are 2 ways:
 
 - Direct transformer hook configuration (`NgPackagerHooks`)
-- A function that returns a transformer hook configuration or a Promise. `(ctx: NgPackagerHooksContext<T>) => NgPackagerTransformerHooks | Promise<NgPackagerTransformerHooks>`
+- A function. `(ctx: NgPackagerHooksContext<T>, registry: HookRegistry) => void | Promise<void>`
 
-> This is Similar to webpack
+Regardless of how you choose to export the instructions (function or object), the end result is always the `NgPackagerTransformerHooks`.
+When using functions you register handlers through the `HookRegistry`, which also allow registering **jobs**.
 
-Regardless of how you choose to export the instructions (function or object), the end result is always the `NgPackagerTransformerHooks`
-
-> When using a function, an additional context parameter is provided, holding metadata and API to perform complex operations.
+> The only way to use **jobs** is through a function, which provide access to the `HookRegistry`.
 
 ### Packagr hooks (`NgPackagerTransformerHooks`)
 
@@ -197,7 +196,6 @@ The first is just a function that implements (`HookHandler`), best suited for ad
 
 Job are more strict and organized, they usually require input and they also provide a schema to validate against that input. (see copy example below). A job can
 spread over several hooks.
-
 
 > The input for all typed tasks is always through `tasks.data` where each typed task has a "namespace" which is a property on the data object that points to it's own input object.
 
