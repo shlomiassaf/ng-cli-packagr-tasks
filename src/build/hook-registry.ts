@@ -6,6 +6,10 @@ export class HookRegistry {
   private _jobs: JobMetadata[] = [];
   private _hooks: NormalizedNgPackagerHooks = {};
 
+  get hasSelfWatchJob(): boolean {
+    return this._jobs.some( job => job.internalWatch )
+  }
+
   constructor(initialHooks?: NgPackagerHooks) {
     if (initialHooks) {
       this._hooks = normalizeHooks(initialHooks);

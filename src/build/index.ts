@@ -63,7 +63,11 @@ export class NgPackagrBuilder extends _NgPackagrBuilder {
           }
           ngPackagr.NgPackagr.prototype.watch = function (this: ngPackagr.NgPackagr) {
             this.withProviders(providers);
-            return watch.call(this);
+            if (registry.hasSelfWatchJob) {
+              return this.buildAsObservable();
+            } else {
+              return watch.call(this); 
+            }
           }
         }),
         switchMap( () => super.run(builderConfig) ),

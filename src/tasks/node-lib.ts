@@ -33,6 +33,7 @@ declare module '../build/utils' {
   interface EntryPointStorage {
     nodeLib: {
       tsConfig: Pick<ts.CreateProgramOptions, 'rootNames' | 'options' | 'projectReferences'>;
+      watchProgram?: ts.WatchOfFilesAndCompilerOptions<ts.EmitAndSemanticDiagnosticsBuilderProgram>;
     }
   }
 }
@@ -103,37 +104,71 @@ async function initTsConfig(context: TaskContext<[ng.ParsedConfiguration]>) {
  */
 async function compilerNgc(context: EntryPointTaskContext) {
   const { epNode } = context;
-  const entryPoints = context.graph.filter(isEntryPoint) as EntryPointNode[];
+  const nodeLibCache = ENTRY_POINT_STORAGE.get(epNode).nodeLib;
 
-  // Add paths mappings for dependencies
-  const ngParsedTsConfig = setDependenciesTsConfigPaths(epNode.data.tsConfig, entryPoints);
-  const tsConfig: EntryPointStorage['nodeLib']['tsConfig'] = JSON.parse(JSON.stringify(ENTRY_POINT_STORAGE.get(epNode).nodeLib.tsConfig));
-  tsConfig.options.paths = ngParsedTsConfig.options.paths;
+  if (context.context().builderConfig.options.watch) {
+    if (nodeLibCache.watchProgram) {
+      return;
+    }
 
-  const scriptTarget = tsConfig.options.target;
-  const cache = epNode.cache;
-  const oldProgram = cache.oldPrograms && (cache.oldPrograms[scriptTarget] as ts.Program | undefined);
+    const formatHost: ts.FormatDiagnosticsHost = {
+      getCanonicalFileName: path => path,
+      getCurrentDirectory: ts.sys.getCurrentDirectory,
+      getNewLine: () => ts.sys.newLine
+    };
 
-  const program = ts.createProgram({
-    rootNames: tsConfig.rootNames,
-    options: tsConfig.options,
-    oldProgram,
-  })
+    const entryPoints = context.graph.filter(isEntryPoint) as EntryPointNode[];
+  
+    // Add paths mappings for dependencies
+    const ngParsedTsConfig = setDependenciesTsConfigPaths(epNode.data.tsConfig, entryPoints);
+    const tsConfig: EntryPointStorage['nodeLib']['tsConfig'] = JSON.parse(JSON.stringify(nodeLibCache.tsConfig));
+    tsConfig.options.paths = ngParsedTsConfig.options.paths;
+  
+    const host = ts.createWatchCompilerHost(
+      tsConfig.rootNames as any,
+      tsConfig.options,
+      ts.sys,
+      ts.createEmitAndSemanticDiagnosticsBuilderProgram,
+      (diagnostic: ts.Diagnostic) => log.error(ng.formatDiagnostics([diagnostic], formatHost)),
+      (diagnostic: ts.Diagnostic) => log.msg(ts.formatDiagnostic(diagnostic, formatHost)),
+      tsConfig.projectReferences,
+    );
+    const program = ts.createWatchProgram<ts.EmitAndSemanticDiagnosticsBuilderProgram>(host);
+    nodeLibCache.watchProgram = program;
+  
+  } else {
+    const entryPoints = context.graph.filter(isEntryPoint) as EntryPointNode[];
+  
+    // Add paths mappings for dependencies
+    const ngParsedTsConfig = setDependenciesTsConfigPaths(epNode.data.tsConfig, entryPoints);
+    const tsConfig: EntryPointStorage['nodeLib']['tsConfig'] = JSON.parse(JSON.stringify(nodeLibCache.tsConfig));
+    tsConfig.options.paths = ngParsedTsConfig.options.paths;
+  
+    const scriptTarget = tsConfig.options.target;
+    const cache = epNode.cache;
+    const oldProgram = cache.oldPrograms && (cache.oldPrograms[scriptTarget] as ts.Program | undefined);
 
-  cache.oldPrograms = { ...cache.oldPrograms, [scriptTarget]: program };
+    const program = ts.createProgram({
+      rootNames: tsConfig.rootNames,
+      options: tsConfig.options,
+      oldProgram,
+    });
 
-  const emitResult = program.emit();
-  const allDiagnostics = ts.getPreEmitDiagnostics(program).concat(emitResult.diagnostics);
+    cache.oldPrograms = { ...cache.oldPrograms, [scriptTarget]: program };
 
-  log.debug(
-    `ngc program structure is reused: ${
-      oldProgram ? (oldProgram as any).structureIsReused : 'No old program'
-    }`
-  );
-
-  const exitCode = ng.exitCodeFromResult(allDiagnostics);
-  if (exitCode !== 0) {
-    throw new Error(ng.formatDiagnostics(allDiagnostics));
+    const emitResult = program.emit();
+    const allDiagnostics = ts.getPreEmitDiagnostics(program).concat(emitResult.diagnostics);
+  
+    log.debug(
+      `ngc program structure is reused: ${
+        oldProgram ? (oldProgram as any).structureIsReused : 'No old program'
+      }`
+    );
+  
+    const exitCode = ng.exitCodeFromResult(allDiagnostics);
+    if (exitCode !== 0) {
+      throw new Error(ng.formatDiagnostics(allDiagnostics));
+    }
   }
 }
 
@@ -164,6 +199,7 @@ async function writePackage(context: EntryPointTaskContext) {
 @Job({
   schema: Path.resolve(__dirname, 'node-lib.json'),
   selector: 'nodeLib',
+  internalWatch: true,
   hooks: {
     initTsConfig: {
       after: initTsConfig

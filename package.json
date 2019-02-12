@@ -1,6 +1,6 @@
 {
   "name": "ng-cli-packagr-tasks",
-  "version": "3.0.1",
+  "version": "3.1.0",
   "description": "Angular CLI Build Architect for ng-packagr with custom tasks and workflows",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",

@@ -10,6 +10,7 @@ export interface JobMetadata {
   schema: string;
   selector: string;
   hooks: NgPackagerHooks;
+  internalWatch?: boolean;
 }
 
 export function findJobMetadata(type: Type): JobMetadata | undefined {
