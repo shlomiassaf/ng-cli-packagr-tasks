@@ -20,6 +20,11 @@ declare module '../build/hooks' {
        * If not set will use the tsConfig of the project
        */
       tsConfig?: string;
+    
+      /**
+       * Compiler options overriding the one's in the file
+       */
+      compilerOptions?: ts.CompilerOptions;
     }
   }
 }
@@ -53,7 +58,7 @@ function readTsConfig(configFile: string): ts.ParsedCommandLine {
 async function initTsConfig(context: TaskContext<[ng.ParsedConfiguration]>) {
   const globalContext = context.context();
   const { builderConfig } = globalContext;
-  const { nodeLib } = builderConfig.options.tasks.data;
+  const nodeLib = builderConfig.options.tasks.data.nodeLib || {};
 
   const tsConfigPath = (nodeLib && nodeLib.tsConfig) || builderConfig.options.tsConfig;
   const parsedTsConfig = readTsConfig(tsConfigPath);
@@ -72,10 +77,11 @@ async function initTsConfig(context: TaskContext<[ng.ParsedConfiguration]>) {
     log.debug(`Initializing tsconfig for ${entryPoint.moduleId}`);
     const rootDir = Path.dirname(entryPoint.entryFilePath);
 
+    const userOverridingCompilerOptions = nodeLib.compilerOptions || {};
     const overrideOptions: ts.CompilerOptions = {
+      ...userOverridingCompilerOptions,
       rootDir,
-      outDir: entryPoint.destinationPath,
-      sourceRoot: `ng://${entryPoint.moduleId}`,
+      outDir: entryPoint.destinationPath
     };
 
     const tsConfig: EntryPointStorage['nodeLib']['tsConfig'] = {
