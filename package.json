@@ -1,6 +1,6 @@
 {
   "name": "ng-cli-packagr-tasks",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "description": "Angular CLI Build Architect for ng-packagr with custom tasks and workflows",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -32,25 +32,23 @@
     "html"
   ],
   "peerDependencies": {
-    "@angular-devkit/architect": "^0.12.2",
-    "@angular-devkit/core": "^7.1.0",
+    "@angular-devkit/architect": "^0.800.3",
+    "@angular-devkit/core": "^8.0.0",
     "globby": "^7.1.1",
-    "ng-packagr": "^4.6.0",
-    "rxjs": "^6.3.0",
-    "semver": "^5.3.0"
+    "ng-packagr": "^5.0.0"
   },
   "devDependencies": {
-    "@angular-devkit/architect": "^0.12.2",
-    "@angular-devkit/build-angular": "0.12.2",
-    "@angular-devkit/build-ng-packagr": "^0.12.2",
-    "@angular-devkit/core": "^7.2.2",
-    "@angular/compiler": "^7.1.0",
-    "@angular/compiler-cli": "^7.1.0",
+    "@angular-devkit/build-angular": "0.800.3",
+    "@angular-devkit/build-ng-packagr": "^0.800.3",
+    "@angular-devkit/architect": "^0.800.3",
+    "@angular-devkit/core": "^8.0.0",
+    "@angular/compiler": "^8.0.0",
+    "@angular/compiler-cli": "^8.0.0",
     "@types/globby": "^8.0.0",
     "@types/node": "^10.12.18",
     "@types/semver": "^5.5.0",
-    "ng-packagr": "^4.6.0",
-    "tsickle": "^0.34.0",
+    "ng-packagr": "^5.0.0",
+    "tsickle": "^0.35.0",
     "tslib": "^1.9.3",
     "typescript": "^3.1.0"
   }

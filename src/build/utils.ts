@@ -1,7 +1,9 @@
 import { switchMap, map } from 'rxjs/operators';
-import * as ts from 'typescript';
 
-import { normalize, virtualFs, JsonParseMode, parseJson, JsonObject } from '@angular-devkit/core';
+import { resolve, normalize, virtualFs, JsonParseMode, parseJson, JsonObject, experimental, schema } from '@angular-devkit/core';
+import { NodeJsSyncHost } from '@angular-devkit/core/node';
+import { NgPackagrBuilderOptions } from '@angular-devkit/build-ng-packagr';
+
 import { BuilderContext } from '@angular-devkit/architect';
 import { TransformProvider } from 'ng-packagr/lib/brocc/transform.di';
 import { EntryPointNode } from 'ng-packagr/lib/ng-v5/nodes';
@@ -12,6 +14,7 @@ import { COMPILE_NGC_TRANSFORM } from 'ng-packagr/lib/ng-v5/entry-point/ts/compi
 import { WRITE_BUNDLES_TRANSFORM } from 'ng-packagr/lib/ng-v5/entry-point/write-bundles.di';
 import { WRITE_PACKAGE_TRANSFORM } from 'ng-packagr/lib/ng-v5/entry-point/write-package.di';
 
+import { NgPackagerHooksContext } from './hooks';
 import {
   NgPackagerHooks,
   NgPackagrBuilderTaskOptions,
@@ -63,10 +66,8 @@ export function getTaskDataInput<T>(jobMeta: JobMetadata, tasks: NgPackagrBuilde
   return { [jobMeta.selector]: data[jobMeta.selector] };
 }
 
-export async function validateTypedTasks(jobs: JobMetadata[],
-                                         context: BuilderContext,
-                                         tasks: NgPackagrBuilderTaskOptions<NgPackagrBuilderTaskSchema>) {
-
+export async function validateTypedTasks(jobs: JobMetadata[], context: NgPackagerHooksContext) {
+  const tasks: NgPackagrBuilderTaskOptions<NgPackagrBuilderTaskSchema> = context.options.tasks;
   const allHooksPromises: Promise<any>[] = [];
 
   const promises = jobs.map( taskMeta => {
@@ -103,4 +104,38 @@ export const ENTRY_POINT_STORAGE = {
   delete(node: EntryPointNode): boolean {
     return this.ENTRY_POINT_DATA.delete(node);
   }
+}
+
+export async function createHooksContext(options: NgPackagrBuilderOptions, context: BuilderContext, host: virtualFs.Host<{}> = new NodeJsSyncHost()): Promise<NgPackagerHooksContext> {
+  const registry = new schema.CoreSchemaRegistry();
+  registry.addPostTransform(schema.transforms.addUndefinedDefaults);
+
+  const workspace = await experimental.workspace.Workspace.fromPath(
+    host,
+    normalize(context.workspaceRoot),
+    registry,
+  );
+
+  const projectName = context.target ? context.target.project : workspace.getDefaultProjectName();
+
+  if (!projectName) {
+    throw new Error('Must either have a target from the context or a default project.');
+  }
+
+  const projectRoot = resolve(workspace.root, normalize(workspace.getProject(projectName).root));
+  const projectSourceRoot = workspace.getProject(projectName).sourceRoot;
+  const sourceRoot = projectSourceRoot
+    ? resolve(workspace.root, normalize(projectSourceRoot))
+    : undefined
+  ;
+
+  return {
+    logger: context.logger,
+    root: workspace.root,
+    projectRoot,
+    sourceRoot,
+    builderContext: context,
+    options,
+    workspace,
+  };
 }

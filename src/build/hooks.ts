@@ -1,6 +1,6 @@
 import { ParsedConfiguration } from '@angular/compiler-cli';
-import { logging } from '@angular-devkit/core';
-import { BuilderConfiguration, BuilderContext } from '@angular-devkit/architect';
+import { experimental, logging, Path } from '@angular-devkit/core';
+import { BuilderContext } from '@angular-devkit/architect';
 import { NgPackagrBuilderOptions } from '@angular-devkit/build-ng-packagr';
 import { BuildGraph } from 'ng-packagr/lib/brocc/build-graph';
 import { EntryPointNode } from 'ng-packagr/lib/ng-v5/nodes';
@@ -21,7 +21,7 @@ export interface TaskContext<T = any[], TData extends NgPackagrBuilderTaskSchema
    */
   graph: BuildGraph;
 
-  context<Z extends NgPackagrBuilderTaskSchema = TData>(): NgPackagerHooksContext<Z>;
+  context(): NgPackagerHooksContext;
 
   taskArgs(key: string): string | undefined;
 }
@@ -55,16 +55,19 @@ export interface NgPackagerHooks {
   writePackage?: TaskPhases;
 }
 
-export interface NgPackagerHooksContext<T extends NgPackagrBuilderTaskSchema = NgPackagrBuilderTaskSchema> {
-  logger: logging.Logger,
-  root: string;
+export interface NgPackagerHooksContext {
+  logger: logging.LoggerApi,
+  root: Path;
+  projectRoot: Path;
+  sourceRoot: Path;
   builderContext: BuilderContext;
-  builderConfig: BuilderConfiguration<NgPackagrBuilderOptionsWithTasks<T>>;
+  options: NgPackagrBuilderOptions;
+  workspace: experimental.workspace.Workspace;
 }
 
-export type NgPackagerHooksModule<T extends NgPackagrBuilderTaskSchema = NgPackagrBuilderTaskSchema>
+export type NgPackagerHooksModule
   = NgPackagerHooks
-  | ((ctx: NgPackagerHooksContext<T>, registry: HookRegistry) => void | Promise<void>);
+  | ((ctx: NgPackagerHooksContext, registry: HookRegistry) => void | Promise<void>);
 
 export interface NgPackagrBuilderTaskSchema { }
 
