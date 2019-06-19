@@ -24,18 +24,16 @@ async function copyFilesTask(context: EntryPointTaskContext) {
     return;
   }
 
-  const { builderContext, builderConfig } = globalContext;
-  const root = builderContext.workspace.root;
-  const projectRoot = resolve(root, builderConfig.root);
-  const host = new virtualFs.AliasHost(builderContext.host as virtualFs.Host<FS.Stats>);
+  const { builderContext, options, root } = globalContext;
+  const host = new virtualFs.AliasHost(globalContext.workspace.host as virtualFs.Host<FS.Stats>);
   const syncHost = new virtualFs.SyncDelegateHost<FS.Stats>(host);
 
   const assets = normalizeAssetPatterns(
-    builderConfig.options.tasks.data.copyFile.assets,
+    options.tasks.data.copyFile.assets,
     syncHost,
     root,
-    projectRoot,
-    builderConfig.sourceRoot,
+    globalContext.projectRoot,
+    globalContext.sourceRoot,
   );
 
   const copyPatterns = buildCopyPatterns(root, assets);

@@ -41,7 +41,7 @@ async function bumpTask(context: EntryPointTaskContext) {
   const newVersion = semver.inc(ver, bump);
   entryPoint.packageJson.version = newVersion;
 
-  const { host } = context.context().builderContext;
+  const { host } = context.context().workspace;
   const packageJsonPath = normalize(Path.join(entryPoint.basePath, 'package.json'));
   await host.read(packageJsonPath)
     .pipe(

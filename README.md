@@ -2,6 +2,14 @@
 
 Tasks & Workflow for ng-packagr.
 
+---
+
+Version 4 support angular version 8 and above.
+
+For angular 7 or lower use version 3.
+
+---
+
 ## TL;DR
 
 Hook into the build steps of `ng-packger` and add custom behaviors or change the built in behaviors.

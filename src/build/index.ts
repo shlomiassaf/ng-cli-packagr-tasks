@@ -1,21 +1,17 @@
 import * as FS from 'fs';
 import { Observable, from } from 'rxjs';
-import { switchMap, map, tap } from 'rxjs/operators';
+import { switchMap, tap } from 'rxjs/operators';
 
-import { BuildEvent, BuilderConfiguration } from '@angular-devkit/architect';
 import * as devKitCore from '@angular-devkit/core';
-import { NgPackagrBuilder as _NgPackagrBuilder, NgPackagrBuilderOptions } from '@angular-devkit/build-ng-packagr';
+import { BuilderContext, BuilderOutput, createBuilder } from '@angular-devkit/architect';
+import { execute as _execute, NgPackagrBuilderOptions } from '@angular-devkit/build-ng-packagr';
 import * as ngPackagr from 'ng-packagr';
 
 // TODO: Remove when issue is fixed.
 import './workaround-issue-1189';
-import {
-  NgPackagerHooksModule,
-  NgPackagrBuilderOptionsWithTasks,
-  NgPackagerHooksContext
-} from './hooks';
+import { NgPackagerHooksModule, NgPackagerHooksContext } from './hooks';
 import { createHookProviders } from './create-hook-provider';
-import { validateTypedTasks } from './utils';
+import { createHooksContext, validateTypedTasks } from './utils';
 import { HookRegistry } from './hook-registry';
 
 export * from './hooks';
@@ -33,78 +29,68 @@ const DEFAULT_TSCONFIG_OPTIONS = {
   ],
 };
 
-// Instead of re-writing NgPackagrBuilder in full, just for adding some providers, we will patch
-// the NgPackager instead... ohh my!
-export class NgPackagrBuilder extends _NgPackagrBuilder {
-  private options: NgPackagrBuilderOptions;
-
-  run(builderConfig: BuilderConfiguration<NgPackagrBuilderOptionsWithTasks>): Observable<BuildEvent> {
-    const builderContext = this.context;
-    this.options = builderConfig.options;
-    const root = this.context.workspace.root;
-    const { tasks } = this.options;
-    const { build, watch } = ngPackagr.NgPackagr.prototype;
-
-    const globalTasksContext = {
-      logger: this.context.logger,
-      root,
-      builderContext,
-      builderConfig
-    };
-
-    return from(this.buildRegistry(tasks.config, globalTasksContext))
-      .pipe(
-        switchMap( registry => validateTypedTasks(registry.getJobs(), this.context, tasks).then( () => registry ) ),
-        tap( registry => {        
-          const providers = createHookProviders(registry.getHooks(), globalTasksContext);
-          ngPackagr.NgPackagr.prototype.build = function (this: ngPackagr.NgPackagr) {
-            this.withProviders(providers);
-            return build.call(this);
-          }
-          ngPackagr.NgPackagr.prototype.watch = function (this: ngPackagr.NgPackagr) {
-            this.withProviders(providers);
-            if (registry.hasSelfWatchJob) {
-              return this.buildAsObservable();
-            } else {
-              return watch.call(this); 
-            }
-          }
-        }),
-        switchMap( () => super.run(builderConfig) ),
-        tap( buildEvent => {
-          ngPackagr.NgPackagr.prototype.build = build;
-          ngPackagr.NgPackagr.prototype.watch = watch;
-        })
-      );
-  }
-
-  private async buildRegistry(transformerPath: string, globalTasksContext: NgPackagerHooksContext): Promise<HookRegistry> {
-    const { tasks } = this.options;
-    const root = this.context.workspace.root;
-    const tPath = devKitCore.getSystemPath(devKitCore.resolve(root, devKitCore.normalize(transformerPath)));
-    if (FS.existsSync(tPath)) {
-      if (/\.ts$/.test(tPath) && !require.extensions['.ts']) {
-        const tsNodeOptions = {} as any;
-        if (tasks.tsConfig) {
-          tsNodeOptions.project = tasks.tsConfig;
-        } else {
-          tsNodeOptions.compilerOptions = DEFAULT_TSCONFIG_OPTIONS;
-        }
-        require('ts-node').register(tsNodeOptions);
-      }
-      const transformHooksModule: NgPackagerHooksModule = require(tPath);
-
-      if (typeof transformHooksModule === 'function') {
-        const registry = new HookRegistry();
-        await transformHooksModule(globalTasksContext, registry);
-        return registry;
+async function buildRegistry(globalTasksContext: NgPackagerHooksContext): Promise<HookRegistry> {
+  const root = globalTasksContext.root;
+  const { tasks } = globalTasksContext.options;
+  const transformerPath = tasks.config;
+  const tPath = devKitCore.getSystemPath(devKitCore.resolve(root, devKitCore.normalize(transformerPath)) as any);
+  if (FS.existsSync(tPath)) {
+    if (/\.ts$/.test(tPath) && !require.extensions['.ts']) {
+      const tsNodeOptions = {} as any;
+      if (tasks.tsConfig) {
+        tsNodeOptions.project = tasks.tsConfig;
       } else {
-        const registry = new HookRegistry(transformHooksModule);
-        return registry;
+        tsNodeOptions.compilerOptions = DEFAULT_TSCONFIG_OPTIONS;
       }
-    };
-    return Promise.resolve(new HookRegistry());
-  }
+      require('ts-node').register(tsNodeOptions);
+    }
+    const transformHooksModule: NgPackagerHooksModule = require(tPath);
+
+    if (typeof transformHooksModule === 'function') {
+      const registry = new HookRegistry();
+      await transformHooksModule(globalTasksContext, registry);
+      return registry;
+    } else {
+      const registry = new HookRegistry(transformHooksModule);
+      return registry;
+    }
+  };
+  return Promise.resolve(new HookRegistry());
 }
 
-export default NgPackagrBuilder;
+async function initRegistry(options: NgPackagrBuilderOptions, builderContext: BuilderContext) {
+  const context = await createHooksContext(options, builderContext);
+  const registry = await buildRegistry(context);
+  return { context, registry };
+}
+
+export function execute(options: NgPackagrBuilderOptions, context: BuilderContext): Observable<BuilderOutput> {
+  const { build, watch } = ngPackagr.NgPackagr.prototype;
+
+  return from (initRegistry(options, context))
+  .pipe(
+    switchMap( result => validateTypedTasks(result.registry.getJobs(), result.context).then( () => result ) ),
+    tap( result => {        
+      const providers = createHookProviders(result.registry.getHooks(), result.context);
+      ngPackagr.NgPackagr.prototype.build = function (this: ngPackagr.NgPackagr) {
+        this.withProviders(providers);
+        return build.call(this);
+      }
+      ngPackagr.NgPackagr.prototype.watch = function (this: ngPackagr.NgPackagr) {
+        this.withProviders(providers);
+        if (result.registry.hasSelfWatchJob) {
+          return this.buildAsObservable();
+        } else {
+          return watch.call(this); 
+        }
+      }
+    }),
+    switchMap( () => _execute(options, context) ),
+    tap( buildEvent => {
+      ngPackagr.NgPackagr.prototype.build = build;
+      ngPackagr.NgPackagr.prototype.watch = watch;
+    }),
+  );
+}
+
+export default createBuilder<Record<string, string> & NgPackagrBuilderOptions>(execute);

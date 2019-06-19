@@ -58,10 +58,9 @@ function readTsConfig(configFile: string): ts.ParsedCommandLine {
  */
 async function initTsConfig(context: TaskContext<[ng.ParsedConfiguration]>) {
   const globalContext = context.context();
-  const { builderConfig } = globalContext;
-  const nodeLib = builderConfig.options.tasks.data.nodeLib || {};
+  const nodeLib = globalContext.options.tasks.data.nodeLib || {};
 
-  const tsConfigPath = (nodeLib && nodeLib.tsConfig) || builderConfig.options.tsConfig;
+  const tsConfigPath = (nodeLib && nodeLib.tsConfig) || globalContext.options.tsConfig;
   const parsedTsConfig = readTsConfig(tsConfigPath);
 
   if (parsedTsConfig.errors.length > 0) {
@@ -106,7 +105,7 @@ async function compilerNgc(context: EntryPointTaskContext) {
   const { epNode } = context;
   const nodeLibCache = ENTRY_POINT_STORAGE.get(epNode).nodeLib;
 
-  if (context.context().builderConfig.options.watch) {
+  if (context.context().options.watch) {
     if (nodeLibCache.watchProgram) {
       return;
     }

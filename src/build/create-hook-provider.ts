@@ -30,20 +30,20 @@ class _TaskContext<T = any[], TData extends NgPackagrBuilderTaskSchema = NgPacka
 
   private parsedTaskArgs: any;
 
-  constructor(private readonly _context: NgPackagerHooksContext<TData>, factoryInjections: T, graph?: BuildGraph) {
+  constructor(private readonly _context: NgPackagerHooksContext, factoryInjections: T, graph?: BuildGraph) {
     this.factoryInjections = factoryInjections;
     if (graph) {
       this.graph = graph;
     }
   }
 
-  context<Z extends NgPackagrBuilderTaskSchema = TData>(): NgPackagerHooksContext<Z> {
+  context(): NgPackagerHooksContext {
     return this._context as any;
   }
 
   taskArgs(key: string): string | undefined {
     if (!this.parsedTaskArgs) {
-      const { tasksArgs } = this.context().builderConfig.options;
+      const { tasksArgs } = this.context().options;
       this.parsedTaskArgs = qs.parse(tasksArgs || '');
     }
     return this.parsedTaskArgs[key];
