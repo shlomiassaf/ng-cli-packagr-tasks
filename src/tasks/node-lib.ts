@@ -4,11 +4,11 @@ import * as ts from 'typescript';
 import * as ng from '@angular/compiler-cli';
 
 import { setDependenciesTsConfigPaths } from 'ng-packagr/lib/ts/tsconfig';
-import { isEntryPoint, EntryPointNode } from 'ng-packagr/lib/ng-v5/nodes';
-import { writePackageJson } from 'ng-packagr/lib/ng-v5/entry-point/write-package.transform';
-import { NgPackage } from 'ng-packagr/lib/ng-package-format/package';
-import { ensureUnixPath } from 'ng-packagr/lib/util/path';
-import * as log from 'ng-packagr/lib/util/log';
+import { isEntryPoint, EntryPointNode } from 'ng-packagr/lib/ng-package/nodes';
+// import { writePackageJson } from 'ng-packagr/lib/ng-package/entry-point/write-package.transform';
+import { NgPackage } from 'ng-packagr/lib/ng-package/package';
+import { ensureUnixPath } from 'ng-packagr/lib/utils/path';
+import * as log from 'ng-packagr/lib/utils/log';
 
 import { TaskContext, EntryPointTaskContext, Job, ENTRY_POINT_STORAGE, EntryPointStorage } from '../build';
 
@@ -187,10 +187,10 @@ async function writePackage(context: EntryPointTaskContext) {
   const distEntryFile = Path.join(entryPoint.destinationPath, Path.relative(tsConfig.options.rootDir, entryPoint.entryFilePath)).replace(/\.ts$/, '.js');
   const distDtsEntryFile = distEntryFile.replace(/\.js$/, '.d.ts');
 
-  await writePackageJson(entryPoint, ngPackage, {
-    main: relativeUnixFromDestPath(distEntryFile),
-    typings: relativeUnixFromDestPath(distDtsEntryFile),
-  });
+  // await writePackageJson(entryPoint, ngPackage, {
+  //   main: relativeUnixFromDestPath(distEntryFile),
+  //   typings: relativeUnixFromDestPath(distDtsEntryFile),
+  // });
   
   log.success(`Built ${entryPoint.moduleId}`);
 }

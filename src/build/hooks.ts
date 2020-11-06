@@ -1,9 +1,9 @@
 import { ParsedConfiguration } from '@angular/compiler-cli';
 import { experimental, logging, Path } from '@angular-devkit/core';
 import { BuilderContext } from '@angular-devkit/architect';
-import { NgPackagrBuilderOptions } from '@angular-devkit/build-ng-packagr';
-import { BuildGraph } from 'ng-packagr/lib/brocc/build-graph';
-import { EntryPointNode } from 'ng-packagr/lib/ng-v5/nodes';
+import { NgPackagrBuilderOptions } from '@angular-devkit/build-angular';
+import { BuildGraph } from 'ng-packagr/lib/graph/build-graph';
+import { EntryPointNode } from 'ng-packagr/lib/ng-package/nodes';
 import { HookRegistry } from './hook-registry';
 
 /**
@@ -100,8 +100,8 @@ export interface NgPackagrBuilderTaskOptions<T extends NgPackagrBuilderTaskSchem
 export type NgPackagrBuilderOptionsWithTasks<T extends NgPackagrBuilderTaskSchema = NgPackagrBuilderTaskSchema>
   = NgPackagrBuilderOptions & { tasks: NgPackagrBuilderTaskOptions<T> };
 
-declare module '@angular-devkit/build-ng-packagr/src/build/index.d' {
-  interface NgPackagrBuilderOptions {
+  declare module '@angular-devkit/build-angular/src/ng-packagr/schema.d' {
+    interface Schema {
     tasks?: NgPackagrBuilderTaskOptions;
     tasksArgs?: string;
   }
