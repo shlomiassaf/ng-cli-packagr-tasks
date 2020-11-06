@@ -4,7 +4,9 @@ Tasks & Workflow for ng-packagr.
 
 ---
 
-Version 4 support angular version 8 and above.
+Version 9 support angular version 9 and above.
+
+For angular 8 or lower use version 4.
 
 For angular 7 or lower use version 3.
 

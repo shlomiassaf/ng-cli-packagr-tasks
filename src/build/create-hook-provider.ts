@@ -1,10 +1,10 @@
 import * as qs from 'querystring';
 import { pipe } from 'rxjs';
 
-import { BuildGraph } from 'ng-packagr/lib/brocc/build-graph';
-import { TransformProvider } from 'ng-packagr/lib/brocc/transform.di';
-import { transformFromPromise, Transform } from 'ng-packagr/lib/brocc/transform';
-import { isEntryPointInProgress, EntryPointNode } from 'ng-packagr/lib/ng-v5/nodes';
+import { BuildGraph } from 'ng-packagr/lib/graph/build-graph';
+import { TransformProvider } from 'ng-packagr/lib/graph/transform.di';
+import { transformFromPromise, Transform } from 'ng-packagr/lib/graph/transform';
+import { isEntryPointInProgress, EntryPointNode } from 'ng-packagr/lib/ng-package/nodes';
 
 import {
   HookHandler,

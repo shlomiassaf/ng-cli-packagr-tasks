@@ -2,7 +2,7 @@ import { map, tap, switchMap } from 'rxjs/operators';
 import * as Path from 'path';
 import * as semver from 'semver';
 import { normalize, virtualFs, JsonObject, parseJson, JsonParseMode } from '@angular-devkit/core';
-import * as log from 'ng-packagr/lib/util/log';
+import * as log from 'ng-packagr/lib/utils/log';
 
 import { EntryPointTaskContext, Job } from '../build';
 

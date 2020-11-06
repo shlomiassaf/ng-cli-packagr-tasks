@@ -2,17 +2,17 @@ import { switchMap, map } from 'rxjs/operators';
 
 import { resolve, normalize, virtualFs, JsonParseMode, parseJson, JsonObject, experimental, schema } from '@angular-devkit/core';
 import { NodeJsSyncHost } from '@angular-devkit/core/node';
-import { NgPackagrBuilderOptions } from '@angular-devkit/build-ng-packagr';
+import { NgPackagrBuilderOptions } from '@angular-devkit/build-angular';
 
 import { BuilderContext } from '@angular-devkit/architect';
-import { TransformProvider } from 'ng-packagr/lib/brocc/transform.di';
-import { EntryPointNode } from 'ng-packagr/lib/ng-v5/nodes';
-import { INIT_TS_CONFIG_TRANSFORM } from 'ng-packagr/lib/ng-v5/init/init-tsconfig.di';
-import { ANALYSE_SOURCES_TRANSFORM } from 'ng-packagr/lib/ng-v5/init/analyse-sources.di';
-import { ENTRY_POINT_TRANSFORM } from 'ng-packagr/lib/ng-v5/entry-point.di';
-import { COMPILE_NGC_TRANSFORM } from 'ng-packagr/lib/ng-v5/entry-point/ts/compile-ngc.di';
-import { WRITE_BUNDLES_TRANSFORM } from 'ng-packagr/lib/ng-v5/entry-point/write-bundles.di';
-import { WRITE_PACKAGE_TRANSFORM } from 'ng-packagr/lib/ng-v5/entry-point/write-package.di';
+import { TransformProvider } from 'ng-packagr/lib/graph/transform.di';
+import { EntryPointNode } from 'ng-packagr/lib/ng-package/nodes';
+import { INIT_TS_CONFIG_TRANSFORM } from 'ng-packagr/lib/ng-package/entry-point/init-tsconfig.di';
+import { ANALYSE_SOURCES_TRANSFORM } from 'ng-packagr/lib/ng-package/entry-point/analyse-sources.di';
+import { ENTRY_POINT_TRANSFORM } from 'ng-packagr/lib/ng-package/entry-point/entry-point.di';
+import { COMPILE_NGC_TRANSFORM } from 'ng-packagr/lib/ng-package/entry-point/compile-ngc.di';
+import { WRITE_BUNDLES_TRANSFORM } from 'ng-packagr/lib/ng-package/entry-point/write-bundles.di';
+import { WRITE_PACKAGE_TRANSFORM } from 'ng-packagr/lib/ng-package/entry-point/write-package.di';
 
 import { NgPackagerHooksContext } from './hooks';
 import {
