@@ -7,9 +7,6 @@ import { BuilderContext, BuilderOutput, createBuilder } from '@angular-devkit/ar
 import { executeNgPackagrBuilder as _execute, NgPackagrBuilderOptions } from '@angular-devkit/build-angular';
 import * as ngPackagr from 'ng-packagr';
 
-// TODO: Remove when issue is fixed.
-// import './workaround-issue-1189';
-
 import { NgPackagerHooksModule, NgPackagerHooksContext } from './hooks';
 import { createHookProviders } from './create-hook-provider';
 import { createHooksContext, validateTypedTasks } from './utils';
