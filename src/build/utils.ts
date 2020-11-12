@@ -1,6 +1,7 @@
-import { switchMap, map } from 'rxjs/operators';
+import { of, throwError } from 'rxjs';
+import { switchMap, map, concatMap } from 'rxjs/operators';
 
-import { resolve, normalize, virtualFs, JsonParseMode, parseJson, JsonObject, experimental, schema } from '@angular-devkit/core';
+import { resolve, normalize, virtualFs, JsonParseMode, parseJson, JsonObject, workspaces, schema } from '@angular-devkit/core';
 import { NodeJsSyncHost } from '@angular-devkit/core/node';
 import { NgPackagrBuilderOptions } from '@angular-devkit/build-angular';
 
@@ -71,12 +72,25 @@ export async function validateTypedTasks(jobs: JobMetadata[], context: NgPackage
   const allHooksPromises: Promise<any>[] = [];
 
   const promises = jobs.map( taskMeta => {
-    return context.workspace.host.read(normalize(taskMeta.schema))
+    return context.host.read(normalize(taskMeta.schema))
       .pipe(
         map(buffer => virtualFs.fileBufferToString(buffer)),
         map(str => parseJson(str, JsonParseMode.Loose) as {} as JsonObject),
-        switchMap( jsonSchema => {
-          return context.workspace.validateAgainstSchema<any>(getTaskDataInput(taskMeta, tasks), jsonSchema);
+        switchMap( schemaJson => {
+          const contentJson = getTaskDataInput(taskMeta, tasks);
+          // JSON validation modifies the content, so we validate a copy of it instead.
+          const contentJsonCopy = JSON.parse(JSON.stringify(contentJson));
+
+          return context.registry.compile(schemaJson)
+            .pipe(
+              concatMap(validator => validator(contentJsonCopy)),
+              concatMap(validatorResult => {
+                return validatorResult.success
+                  ? of(contentJsonCopy)
+                  : throwError(new schema.SchemaValidationException(validatorResult.errors))
+                ;
+              }),
+            );
         })
       )
       .toPromise();
@@ -110,32 +124,34 @@ export async function createHooksContext(options: NgPackagrBuilderOptions, conte
   const registry = new schema.CoreSchemaRegistry();
   registry.addPostTransform(schema.transforms.addUndefinedDefaults);
 
-  const workspace = await experimental.workspace.Workspace.fromPath(
-    host,
-    normalize(context.workspaceRoot),
-    registry,
+  const workspaceRoot = normalize(context.workspaceRoot);
+  const { workspace } = await workspaces.readWorkspace(
+    workspaceRoot,
+    workspaces.createWorkspaceHost(host),
   );
 
-  const projectName = context.target ? context.target.project : workspace.getDefaultProjectName();
+  const projectName = context.target?.project ?? <string>workspace.extensions['defaultProject'];
 
   if (!projectName) {
     throw new Error('Must either have a target from the context or a default project.');
   }
 
-  const projectRoot = resolve(workspace.root, normalize(workspace.getProject(projectName).root));
-  const projectSourceRoot = workspace.getProject(projectName).sourceRoot;
+  const project = workspace.projects.get(projectName);
+  const projectRoot = resolve(workspaceRoot, normalize(project.root));
+  const projectSourceRoot = project.sourceRoot;
   const sourceRoot = projectSourceRoot
-    ? resolve(workspace.root, normalize(projectSourceRoot))
+    ? resolve(workspaceRoot, normalize(projectSourceRoot))
     : undefined
   ;
 
   return {
     logger: context.logger,
-    root: workspace.root,
+    root: workspaceRoot,
     projectRoot,
     sourceRoot,
     builderContext: context,
     options,
-    workspace,
+    host,
+    registry,
   };
 }

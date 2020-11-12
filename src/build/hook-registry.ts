@@ -54,7 +54,7 @@ export class HookRegistry {
   }
 
   private getHookPhase<T extends keyof NgPackagerHooks, P extends keyof TaskPhases>(hook: T, phase: P): NormalizedNgPackagerHooks[T][P] {
-    const hookMap = this._hooks[hook] || (this._hooks[hook] = {});
+    const hookMap = this._hooks[hook] || (this._hooks[hook] = {} as NormalizedNgPackagerHooks[T]);
 
     if (!hookMap[phase]) {
       hookMap[phase] = [] as NormalizedNgPackagerHooks[T][P];

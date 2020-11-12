@@ -1,5 +1,5 @@
 import { ParsedConfiguration } from '@angular/compiler-cli';
-import { experimental, logging, Path } from '@angular-devkit/core';
+import { logging, Path, virtualFs, schema } from '@angular-devkit/core';
 import { BuilderContext } from '@angular-devkit/architect';
 import { NgPackagrBuilderOptions } from '@angular-devkit/build-angular';
 import { BuildGraph } from 'ng-packagr/lib/graph/build-graph';
@@ -62,7 +62,8 @@ export interface NgPackagerHooksContext {
   sourceRoot: Path;
   builderContext: BuilderContext;
   options: NgPackagrBuilderOptions;
-  workspace: experimental.workspace.Workspace;
+  host: virtualFs.Host,
+  registry: schema.SchemaRegistry,
 }
 
 export type NgPackagerHooksModule

@@ -25,7 +25,7 @@ async function copyFilesTask(context: EntryPointTaskContext) {
   }
 
   const { builderContext, options, root } = globalContext;
-  const host = new virtualFs.AliasHost(globalContext.workspace.host as virtualFs.Host<FS.Stats>);
+  const host = new virtualFs.AliasHost(globalContext.host as virtualFs.Host<FS.Stats>);
   const syncHost = new virtualFs.SyncDelegateHost<FS.Stats>(host);
 
   const assets = normalizeAssetPatterns(
