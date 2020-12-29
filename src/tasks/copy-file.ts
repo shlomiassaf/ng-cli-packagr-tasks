@@ -108,4 +108,7 @@ function buildCopyPatterns(root: string, assets: ReturnType< typeof normalizeAss
     }
   }
 })
-export class CopyFile { }
+export class CopyFile {
+  static readonly copyFilesTask = copyFilesTask;
+  static readonly buildCopyPatterns = buildCopyPatterns;
+}

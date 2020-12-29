@@ -214,4 +214,8 @@ async function writePackage(context: EntryPointTaskContext) {
     }
   }
 })
-export class NodeLib { }
+export class NodeLib {
+  static readonly initTsConfig = initTsConfig;
+  static readonly compilerNgc = compilerNgc;
+  static readonly writePackage = writePackage;
+}
