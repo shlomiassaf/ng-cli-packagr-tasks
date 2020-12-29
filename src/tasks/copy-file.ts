@@ -2,7 +2,7 @@ import * as Path from 'path';
 import * as FS from 'fs';
 
 import * as globby from 'globby';
-import { resolve, virtualFs } from '@angular-devkit/core';
+import { Path as _Path, virtualFs } from '@angular-devkit/core';
 import { AssetPattern } from '@angular-devkit/build-angular';
 import { normalizeAssetPatterns } from '@angular-devkit/build-angular/src/utils/normalize-asset-patterns';
 import * as log from 'ng-packagr/lib/utils/log';
@@ -17,63 +17,17 @@ declare module '../build/hooks' {
   }
 }
 
-async function copyFilesTask(context: EntryPointTaskContext) {
-
-  const globalContext = context.context();
-  if (context.epNode.data.entryPoint.isSecondaryEntryPoint) {
-    return;
-  }
-
-  const { builderContext, options, root } = globalContext;
-  const host = new virtualFs.AliasHost(globalContext.host as virtualFs.Host<FS.Stats>);
-  const syncHost = new virtualFs.SyncDelegateHost<FS.Stats>(host);
-
-  const assets = normalizeAssetPatterns(
-    options.tasks.data.copyFile.assets,
-    syncHost,
-    root,
-    globalContext.projectRoot,
-    globalContext.sourceRoot,
-  );
-
-  const copyPatterns = buildCopyPatterns(root, assets);
-  const copyOptions = { ignore: ['.gitkeep', '**/.DS_Store', '**/Thumbs.db'] };
-
-  log.info('Copying assets');
-
-  const w = copyPatterns.map( pattern => {
-    const fullPattern = pattern.context + pattern.from.glob;
-    const opts = { ...copyOptions, dot: pattern.from.dot };
-    return globby(fullPattern, opts).then(entries => {
-      entries.forEach( entry => {
-        const cleanFilePath = entry.replace(pattern.context, '');
-        const to = Path.resolve(root, pattern.to, cleanFilePath);
-        const pathToFolder = Path.dirname(to);
-        pathToFolder.split('/').reduce((p, folder) => {
-          p += folder + '/';
-          
-          if (!FS.existsSync(p)) {
-            FS.mkdirSync(p);
-          }
-          return p;
-        }, '');
-
-        FS.copyFileSync(entry, to);
-        log.success(` - from: ${entry}`);
-        log.success(` - to: ${to}`);
-      });
-    });
-  });
-
-  try {
-    await Promise.all(w);
-  } catch (err) {
-    builderContext.logger.error(err.toString());
-    throw err;
-  }
+export interface CopyPattern {
+  context: string;
+  to: string;
+  ignore: string[];
+  from: {
+      glob: string;
+      dot: boolean;
+  };
 }
 
-function buildCopyPatterns(root: string, assets: ReturnType< typeof normalizeAssetPatterns>) {
+function buildCopyPatterns(root: string, assets: ReturnType< typeof normalizeAssetPatterns>): CopyPattern[] {
   return assets.map( asset => {
 
     // Resolve input paths relative to workspace root and add slash at the end.
@@ -99,6 +53,105 @@ function buildCopyPatterns(root: string, assets: ReturnType< typeof normalizeAss
   });
 }
 
+function createCopyPatterns(assetPatterns: AssetPattern[], host: virtualFs.Host<any>, root: _Path, projectRoot: _Path, maybeSourceRoot: _Path) {
+  const syncHost = new virtualFs.SyncDelegateHost<any>(host);
+
+  const assets = normalizeAssetPatterns(
+    assetPatterns,
+    syncHost,
+    root,
+    projectRoot,
+    maybeSourceRoot,
+  );
+
+  return buildCopyPatterns(root, assets);
+}
+
+async function getGlobEntries(copyPattern: CopyPattern, copyOptions: globby.GlobbyOptions) {
+  const fullPattern = copyPattern.context + copyPattern.from.glob;
+  const opts = { ...copyOptions, dot: copyPattern.from.dot };
+
+  return globby(fullPattern, opts);
+}
+
+async function executeCopyPattern(copyPattern: CopyPattern,
+                                  copyOptions: globby.GlobbyOptions,
+                                  root: string,
+                                  onCopy?: (from: string, to: string) => void) {
+  const entries = await getGlobEntries(copyPattern, copyOptions);
+
+  for (const entry of entries) {
+    const cleanFilePath = entry.replace(copyPattern.context, '');
+    const to = Path.resolve(root, copyPattern.to, cleanFilePath);
+    const pathToFolder = Path.dirname(to);
+
+    pathToFolder.split('/').reduce((p, folder) => {
+      p += folder + '/';
+      
+      if (!FS.existsSync(p)) {
+        FS.mkdirSync(p);
+      }
+
+      return p;
+    }, '');
+
+    FS.copyFileSync(entry, to);
+
+    if (onCopy) {
+      onCopy(entry, to);
+    }
+  }
+}
+
+async function executeCopyPatterns(copyPatterns: CopyPattern[],
+                                   root: string,
+                                   copyOptions?: globby.GlobbyOptions,
+                                   onCopy?: (pattern: CopyPattern, from: string, to: string) => void) {
+  const opts = copyOptions ? { ...copyOptions } : {};
+  for (const copyPattern of copyPatterns) {
+    const singleOnCopy = onCopy
+      ? (from: string, to: string) => onCopy(copyPattern, from, to)
+      : undefined
+    ;
+    await executeCopyPattern(copyPattern, opts, root, singleOnCopy);
+  }
+}
+
+async function copyFilesTask(context: EntryPointTaskContext) {
+
+  const globalContext = context.context();
+  if (context.epNode.data.entryPoint.isSecondaryEntryPoint) {
+    return;
+  }
+
+  const { builderContext, options, root } = globalContext;
+  const host = new virtualFs.AliasHost(globalContext.host as virtualFs.Host<FS.Stats>);
+
+  const copyPatterns = createCopyPatterns(
+    options.tasks.data.copyFile.assets,
+    host,
+    root,
+    globalContext.projectRoot,
+    globalContext.sourceRoot,
+  );
+  
+  const copyOptions = { ignore: ['.gitkeep', '**/.DS_Store', '**/Thumbs.db'] };
+  const onCopy = (pattern: CopyPattern, from: string, to: string) => {
+    log.success(` - from: ${from}`);
+    log.success(` - to: ${to}`);
+  };
+
+  log.info('Copying assets');
+
+  try {
+    await executeCopyPatterns(copyPatterns, root, copyOptions, onCopy);
+  } catch (err) {
+    builderContext.logger.error(err.toString());
+    throw err;
+  }
+}
+
+
 @Job({
   schema: Path.resolve(__dirname, 'copy-file.json'),
   selector: 'copyFile',
@@ -110,5 +163,8 @@ function buildCopyPatterns(root: string, assets: ReturnType< typeof normalizeAss
 })
 export class CopyFile {
   static readonly copyFilesTask = copyFilesTask;
-  static readonly buildCopyPatterns = buildCopyPatterns;
+  static readonly createCopyPatterns = createCopyPatterns;
+  static readonly executeCopyPattern = executeCopyPattern;
+  static readonly executeCopyPatterns = executeCopyPatterns;
+
 }
