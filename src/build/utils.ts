@@ -1,7 +1,8 @@
 import { of, throwError } from 'rxjs';
 import { switchMap, map, concatMap } from 'rxjs/operators';
 
-import { resolve, normalize, virtualFs, JsonParseMode, parseJson, JsonObject, workspaces, schema } from '@angular-devkit/core';
+import { parse as parseJson } from 'jsonc-parser';
+import { resolve, normalize, virtualFs, JsonObject, workspaces, schema } from '@angular-devkit/core';
 import { NodeJsSyncHost } from '@angular-devkit/core/node';
 import { NgPackagrBuilderOptions } from '@angular-devkit/build-angular';
 
@@ -75,7 +76,7 @@ export async function validateTypedTasks(jobs: JobMetadata[], context: NgPackage
     return context.host.read(normalize(taskMeta.schema))
       .pipe(
         map(buffer => virtualFs.fileBufferToString(buffer)),
-        map(str => parseJson(str, JsonParseMode.Loose) as {} as JsonObject),
+        map(str =>  parseJson(str, null, { allowTrailingComma: true }) as {} as JsonObject),
         switchMap( schemaJson => {
           const contentJson = getTaskDataInput(taskMeta, tasks);
           // JSON validation modifies the content, so we validate a copy of it instead.

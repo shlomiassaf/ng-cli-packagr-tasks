@@ -1,7 +1,7 @@
 
 import * as Path from 'path';
 import * as ts from 'typescript';
-import * as ng from '@angular/compiler-cli';
+import { ngCompilerCli } from './ngc-cli-utils';
 
 import { setDependenciesTsConfigPaths } from 'ng-packagr/lib/ts/tsconfig';
 import { isEntryPoint, EntryPointNode } from 'ng-packagr/lib/ng-package/nodes';
@@ -56,17 +56,18 @@ function readTsConfig(configFile: string): ts.ParsedCommandLine {
  * We reload the configuration from scratch and create configuration parameters for a simple tsc compilation without the angular compiler stuff.
  * We run "after" and not "replace" because there are a lot of areas depending on the angular compiler `ParsedConfiguration` object.
  */
-async function initTsConfig(context: TaskContext<[ng.ParsedConfiguration]>) {
+async function initTsConfig(context: TaskContext<[import ('@angular/compiler-cli').ParsedConfiguration]>) {
   const globalContext = context.context();
   const nodeLib = globalContext.options.tasks.data.nodeLib || {};
 
   const tsConfigPath = (nodeLib && nodeLib.tsConfig) || globalContext.options.tsConfig;
   const parsedTsConfig = readTsConfig(tsConfigPath);
 
+  const { exitCodeFromResult, formatDiagnostics } = await ngCompilerCli();
   if (parsedTsConfig.errors.length > 0) {
-    const exitCode = ng.exitCodeFromResult(parsedTsConfig.errors);
+    const exitCode = exitCodeFromResult(parsedTsConfig.errors);
     if (exitCode !== 0) {
-      return Promise.reject(new Error(ng.formatDiagnostics(parsedTsConfig.errors)));
+      return Promise.reject(new Error(formatDiagnostics(parsedTsConfig.errors)));
     }
   }
   
@@ -123,12 +124,13 @@ async function compilerNgc(context: EntryPointTaskContext) {
     const tsConfig: EntryPointStorage['nodeLib']['tsConfig'] = JSON.parse(JSON.stringify(nodeLibCache.tsConfig));
     tsConfig.options.paths = ngParsedTsConfig.options.paths;
   
+    const { formatDiagnostics } = await ngCompilerCli();
     const host = ts.createWatchCompilerHost(
       tsConfig.rootNames as any,
       tsConfig.options,
       ts.sys,
       ts.createEmitAndSemanticDiagnosticsBuilderProgram,
-      (diagnostic: ts.Diagnostic) => log.error(ng.formatDiagnostics([diagnostic], formatHost)),
+      (diagnostic: ts.Diagnostic) => log.error(formatDiagnostics([diagnostic], formatHost)),
       (diagnostic: ts.Diagnostic) => log.msg(ts.formatDiagnostic(diagnostic, formatHost)),
       tsConfig.projectReferences,
     );
@@ -164,9 +166,10 @@ async function compilerNgc(context: EntryPointTaskContext) {
       }`
     );
   
-    const exitCode = ng.exitCodeFromResult(allDiagnostics);
+    const { exitCodeFromResult, formatDiagnostics } = await ngCompilerCli();
+    const exitCode = exitCodeFromResult(allDiagnostics);
     if (exitCode !== 0) {
-      throw new Error(ng.formatDiagnostics(allDiagnostics));
+      throw new Error(formatDiagnostics(allDiagnostics));
     }
   }
 }

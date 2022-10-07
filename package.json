@@ -1,12 +1,12 @@
 {
   "name": "ng-cli-packagr-tasks",
-  "version": "11.0.2",
+  "version": "14.2.0",
   "description": "Angular CLI Build Architect for ng-packagr with custom tasks and workflows",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "builders": "builders.json",
   "scripts": {
-    "build": "rm -rf dist && ./node_modules/.bin/tsc -p tsconfig.json && node publish-copy.js",
+    "build": "rm -rf dist && ./node_modules/.bin/tsc -p tsconfig.json && node publish-copy.mjs",
     "watch": "rm -rf dist && ./node_modules/.bin/tsc -w -p tsconfig.json"
   },
   "author": "Shlomi Assaf <shlomiasafk@gmail.com>",
@@ -31,24 +31,21 @@
     "scss",
     "html"
   ],
+  "dependencies": {
+    "globby": "^9.0.0"
+  },
   "peerDependencies": {
-    "@angular-devkit/architect": "0.1100.0",
-    "@angular-devkit/core": "0.1100.0",
-    "globby": "^7.1.1",
-    "ng-packagr": "^11.0.0"
+    "@angular-devkit/build-angular": "~14.2.0",
+    "ng-packagr": "~14.2.0"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "0.1100.0",
-    "@angular/compiler": "~11.0.0",
-    "@angular/compiler-cli": "~11.0.0",
-    "@types/globby": "^8.0.0",
-    "@types/node": "^12.0.0",
+    "@angular-devkit/build-angular": "~14.2.0",
+    "@angular/compiler": "~14.2.0",
+    "@angular/compiler-cli": "~14.2.0",
+    "@types/node": "18.7.1",
     "@types/semver": "^5.5.0",
-    "ng-packagr": "~11.0.0",
-    "tslib": "^2.0.0",
-    "typescript": "^4.0.0"
-  },
-  "resolutions": {
-    "**/fsevents": "^1.2.9"
+    "ng-packagr": "~14.2.1",
+    "tslib": "^2.2.0",
+    "typescript": "~4.8.4"
   }
 }

@@ -1,7 +1,8 @@
 import { map, tap, switchMap } from 'rxjs/operators';
 import * as Path from 'path';
 import * as semver from 'semver';
-import { normalize, virtualFs, JsonObject, parseJson, JsonParseMode } from '@angular-devkit/core';
+import { parse as parseJson } from 'jsonc-parser';
+import { normalize, virtualFs, JsonObject } from '@angular-devkit/core';
 import * as log from 'ng-packagr/lib/utils/log';
 
 import { EntryPointTaskContext, Job } from '../build';
@@ -46,7 +47,7 @@ async function bumpTask(context: EntryPointTaskContext) {
   await host.read(packageJsonPath)
     .pipe(
       map( buffer => virtualFs.fileBufferToString(buffer) ),
-      map( str => parseJson(str, JsonParseMode.Loose) as {} as JsonObject ),
+      map( str => parseJson(str, null, { allowTrailingComma: true }) as {} as JsonObject ),
       tap( packageJson => packageJson.version = newVersion ),
       switchMap( packageJson => {
         return host.write(

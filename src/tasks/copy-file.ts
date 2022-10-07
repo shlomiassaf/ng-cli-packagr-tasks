@@ -53,12 +53,10 @@ function buildCopyPatterns(root: string, assets: ReturnType< typeof normalizeAss
   });
 }
 
-function createCopyPatterns(assetPatterns: AssetPattern[], host: virtualFs.Host<any>, root: _Path, projectRoot: _Path, maybeSourceRoot: _Path) {
-  const syncHost = new virtualFs.SyncDelegateHost<any>(host);
+function createCopyPatterns(assetPatterns: AssetPattern[], root: _Path, projectRoot: _Path, maybeSourceRoot: _Path) {
 
   const assets = normalizeAssetPatterns(
     assetPatterns,
-    syncHost,
     root,
     projectRoot,
     maybeSourceRoot,
@@ -125,11 +123,9 @@ async function copyFilesTask(context: EntryPointTaskContext) {
   }
 
   const { builderContext, options, root } = globalContext;
-  const host = new virtualFs.AliasHost(globalContext.host as virtualFs.Host<FS.Stats>);
 
   const copyPatterns = createCopyPatterns(
     options.tasks.data.copyFile.assets,
-    host,
     root,
     globalContext.projectRoot,
     globalContext.sourceRoot,

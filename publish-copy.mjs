@@ -1,6 +1,6 @@
-const path = require('path');
-const fs = require('fs');
-const globby = require('globby');
+import * as path from 'path';
+import * as fs from 'fs';
+import * as globby from 'globby';
 
 const cwd = process.cwd();
 const srcRoot = path.join(cwd, 'src');

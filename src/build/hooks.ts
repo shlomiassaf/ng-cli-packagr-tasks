@@ -101,7 +101,7 @@ export interface NgPackagrBuilderTaskOptions<T extends NgPackagrBuilderTaskSchem
 export type NgPackagrBuilderOptionsWithTasks<T extends NgPackagrBuilderTaskSchema = NgPackagrBuilderTaskSchema>
   = NgPackagrBuilderOptions & { tasks: NgPackagrBuilderTaskOptions<T> };
 
-  declare module '@angular-devkit/build-angular/src/ng-packagr/schema.d' {
+  declare module '@angular-devkit/build-angular/src/builders/ng-packagr/schema.d' {
     interface Schema {
     tasks?: NgPackagrBuilderTaskOptions;
     tasksArgs?: string;
