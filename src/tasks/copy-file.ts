@@ -2,7 +2,6 @@ import * as Path from 'path';
 import * as FS from 'fs';
 
 import * as globby from 'globby';
-import { Path as _Path, virtualFs } from '@angular-devkit/core';
 import { AssetPattern } from '@angular-devkit/build-angular';
 import { normalizeAssetPatterns } from '@angular-devkit/build-angular/src/utils/normalize-asset-patterns';
 import * as log from 'ng-packagr/lib/utils/log';
@@ -53,7 +52,7 @@ function buildCopyPatterns(root: string, assets: ReturnType< typeof normalizeAss
   });
 }
 
-function createCopyPatterns(assetPatterns: AssetPattern[], root: _Path, projectRoot: _Path, maybeSourceRoot: _Path) {
+function createCopyPatterns(assetPatterns: AssetPattern[], root: string, projectRoot: string, maybeSourceRoot: string) {
 
   const assets = normalizeAssetPatterns(
     assetPatterns,
@@ -162,5 +161,4 @@ export class CopyFile {
   static readonly createCopyPatterns = createCopyPatterns;
   static readonly executeCopyPattern = executeCopyPattern;
   static readonly executeCopyPatterns = executeCopyPatterns;
-
 }
