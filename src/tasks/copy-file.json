@@ -42,12 +42,15 @@
             "output": {
               "type": "string",
               "description": "Absolute path within the output."
+            },
+            "explicitFileName": {
+              "type": "string",
+              "description": "When set, copy the input file into a specific output file. Requires the input glob to return a single result."
             }
           },
           "additionalProperties": false,
           "required": [
             "glob",
-            "input",
             "output"
           ]
         },

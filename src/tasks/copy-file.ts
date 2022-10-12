@@ -16,10 +16,17 @@ declare module '../build/hooks' {
   }
 }
 
+declare module '@angular-devkit/build-angular/src/builders/browser/schema.d' {
+  interface AssetPatternClass {
+    explicitFileName?: string;
+  }
+}
+
 export interface CopyPattern {
   context: string;
   to: string;
   ignore: string[];
+  explicitFileName?: string;
   from: {
       glob: string;
       dot: boolean;
@@ -32,7 +39,7 @@ function buildCopyPatterns(root: string, assets: ReturnType< typeof normalizeAss
     // Resolve input paths relative to workspace root and add slash at the end.
     asset.input = Path.resolve(root, asset.input).replace(/\\/g, '/');
     asset.input = asset.input.endsWith('/') ? asset.input : asset.input + '/';
-    asset.output = asset.output.endsWith('/') ? asset.output : asset.output + '/';
+    asset.output = asset.output.endsWith('/') || asset.explicitFileName?.length > 0 ? asset.output : asset.output + '/';
 
     if (asset.output.startsWith('..')) {
       const message = 'An asset cannot be written to a location outside of the output path.';
@@ -44,6 +51,7 @@ function buildCopyPatterns(root: string, assets: ReturnType< typeof normalizeAss
       // Now we remove starting slash to make Webpack place it from the output root.
       to: asset.output.replace(/^\//, ''),
       ignore: asset.ignore,
+      explicitFileName: asset.explicitFileName,
       from: {
         glob: asset.glob,
         dot: true,
@@ -55,7 +63,13 @@ function buildCopyPatterns(root: string, assets: ReturnType< typeof normalizeAss
 function createCopyPatterns(assetPatterns: AssetPattern[], root: string, projectRoot: string, maybeSourceRoot: string) {
 
   const assets = normalizeAssetPatterns(
-    assetPatterns,
+    assetPatterns.map(p => {
+      if (!(typeof p == "string" || p instanceof String) && ((p.input?.length || 0) == 0))
+      {
+        p.input = projectRoot;
+      }
+      return p;
+    }),
     root,
     projectRoot,
     maybeSourceRoot,
@@ -77,9 +91,13 @@ async function executeCopyPattern(copyPattern: CopyPattern,
                                   onCopy?: (from: string, to: string) => void) {
   const entries = await getGlobEntries(copyPattern, copyOptions);
 
+  if (copyPattern.explicitFileName?.length > 0 && entries.length > 1)
+  {
+    throw new Error(`Using 'explicitFileName' requires the glob to resolve to a single file. [Input]: ${copyPattern.context}`)
+  }
   for (const entry of entries) {
     const cleanFilePath = entry.replace(copyPattern.context, '');
-    const to = Path.resolve(root, copyPattern.to, cleanFilePath);
+    const to = Path.resolve(root, copyPattern.to, copyPattern.explicitFileName || cleanFilePath);
     const pathToFolder = Path.dirname(to);
 
     pathToFolder.split('/').reduce((p, folder) => {
